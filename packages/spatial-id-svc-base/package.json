@@ -1,0 +1,21 @@
+{
+  "name": "spatial-id-svc-base",
+  "version": "0.1.0",
+  "main": "src/index.ts",
+  "license": "UNLICENSED",
+  "private": true,
+  "sideEffects": false,
+  "devDependencies": {
+    "bundle-declarations-webpack-plugin": "^4.0.1",
+    "typescript": "^5.0.2",
+    "webpack": "5.76.2",
+    "webpack-cli": "^5.0.1"
+  },
+  "dependencies": {
+    "textlinestream": "^1.1.1"
+  },
+  "scripts": {
+    "clean": "rm -rf dist; mkdir -p dist; cp package.dist.json dist/package.json",
+    "build": "yarn clean; webpack"
+  }
+}

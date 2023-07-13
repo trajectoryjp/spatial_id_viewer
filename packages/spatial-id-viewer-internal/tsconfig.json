@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.json",
+  "exclude": ["node_modules"],
+  "include": ["src", "../spatial-id-viewer/src", "../../types/*.d.ts"],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "#app/*": ["../spatial-id-viewer/src/*"],
+      "#app-internal/*": ["./src/*"]
+    },
+    "noEmit": true
+  }
+}

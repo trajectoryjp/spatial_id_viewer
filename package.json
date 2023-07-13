@@ -1,0 +1,36 @@
+{
+  "name": "spid_view",
+  "version": "0.1.0",
+  "license": "UNLICENSED",
+  "private": true,
+  "packageManager": "yarn@3.5.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "yarn workspace spatial-id-viewer run build",
+    "dev": "yarn workspace spatial-id-viewer run dev",
+    "export": "yarn workspace spatial-id-viewer run export",
+    "examples": "yarn exec http-server"
+  },
+  "devDependencies": {
+    "@types/node": "^18.15.5",
+    "@typescript-eslint/eslint-plugin": "^5.56.0",
+    "@typescript-eslint/parser": "^5.56.0",
+    "eslint": "^8.36.0",
+    "eslint-config-next": "^13.2.4",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-import-resolver-typescript": "^3.5.3",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-simple-import-sort": "^10.0.0",
+    "http-server": "^14.1.1",
+    "prettier": "^2.8.6"
+  },
+  "resolutions": {
+    "cesium": "1.103.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "typescript": "5.0.2",
+    "webpack": "5.76.2"
+  }
+}

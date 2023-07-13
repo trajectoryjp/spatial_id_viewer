@@ -1,0 +1,9 @@
+{
+  "name": "spatial-id-converter",
+  "version": "0.1.0",
+  "license": "UNLICENSED",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "types": "index.d.ts"
+}

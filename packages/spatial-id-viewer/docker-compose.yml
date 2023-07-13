@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  spatial-id-viewer:
+    image: spatial-id-viewer:latest
+    build:
+      context: ../..
+      dockerfile: ./packages/spatial-id-viewer/Dockerfile
+    ports:
+      - '8080:8080'

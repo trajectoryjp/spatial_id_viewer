@@ -1,0 +1,25 @@
+{
+  "name": "spid-view-example-webpack-ts",
+  "version": "0.1.0",
+  "license": "UNLICENSED",
+  "private": true,
+  "packageManager": "yarn@3.5.0",
+  "dependencies": {
+    "spatial-id-converter": "file:../../packages/spatial-id-converter/dist",
+    "spatial-id-converter-internal": "file:../../packages/spatial-id-converter-internal/dist",
+    "spatial-id-svc-area": "file:../../packages/spatial-id-svc-area/dist",
+    "spatial-id-svc-barriers-internal": "file:../../packages/spatial-id-svc-barriers-internal/dist",
+    "spatial-id-svc-base": "file:../../packages/spatial-id-svc-base/dist",
+    "spatial-id-svc-common": "file:../../packages/spatial-id-svc-common/dist",
+    "spatial-id-svc-route": "file:../../packages/spatial-id-svc-route/dist"
+  },
+  "devDependencies": {
+    "ts-loader": "^9.4.2",
+    "typescript": "^5.0.2",
+    "webpack": "^5.76.3"
+  },
+  "scripts": {
+    "clean": "rm -rf dist; mkdir -p dist",
+    "build": "yarn clean; webpack"
+  }
+}
