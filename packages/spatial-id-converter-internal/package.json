@@ -1,0 +1,21 @@
+{
+  "name": "spatial-id-converter-internal",
+  "version": "0.1.0",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "src/index.ts",
+  "sideEffects": false,
+  "devDependencies": {
+    "bundle-declarations-webpack-plugin": "^4.0.1",
+    "typescript": "^5.0.2",
+    "webpack": "5.76.2",
+    "webpack-cli": "^5.0.1"
+  },
+  "dependencies": {
+    "spatial-id-converter": "*"
+  },
+  "scripts": {
+    "clean": "rm -rf dist; mkdir -p dist; cp package.dist.json dist/package.json",
+    "build": "yarn clean; webpack"
+  }
+}

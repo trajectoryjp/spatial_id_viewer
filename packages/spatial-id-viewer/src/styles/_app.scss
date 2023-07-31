@@ -1,0 +1,12 @@
+@import '~tailwindcss/base';
+@import '~tailwindcss/components';
+@import '~tailwindcss/utilities';
+
+@import 'cesium/Build/Cesium/Widgets/widgets.css';
+@import 'react-datepicker/dist/react-datepicker.css';
+@import 'react-toastify/dist/ReactToastify.css';
+
+// cesium 関連のスタイルが tailwindcss によって上書きされるため、ここで再定義
+.cesium-button {
+  background: #303336;
+}

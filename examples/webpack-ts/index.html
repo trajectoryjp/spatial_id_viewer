@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>spatial-id ライブラリ群 サンプルプロジェクト</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD"
+      crossorigin="anonymous"
+    />
+
+    <!--
+      スクリプト本体
+
+      webpack によりバンドル済みの js ファイル
+    -->
+    <script src="dist/index.bundle.js"></script>
+  </head>
+  <body>
+    <main class="container my-4">
+      <h3 class="text-2xl font-bold">サンプルプロジェクト</h3>
+      <p>
+        spatial-id
+        ライブラリ群のサンプルコードです。このディレクトリ内のソースコードをご覧ください。
+      </p>
+
+      <!-- ログイン -->
+      <section class="mt-5">
+        <h4 class="font-bold">ログインを行う</h4>
+        <p>
+          spatial-id-svc-common: login 関数のサンプル »
+          ユーザ名とパスワードを送信して、トークンを取得する
+        </p>
+        <div class="row">
+          <div class="card col-xl-10 mx-auto">
+            <div class="card-body py-4">
+              <div class="row">
+                <label for="login-userid" class="col-md-2 col-form-label">ユーザー ID</label>
+                <div class="col-md-10">
+                  <input type="text" id="login-userId" class="form-control" />
+                </div>
+              </div>
+              <div class="row">
+                <label for="login-password" class="col-md-2 col-form-label">パスワード</label>
+                <div class="col-md-10">
+                  <input type="password" id="login-password" class="form-control" />
+                </div>
+              </div>
+              <button type="button" class="mt-2 btn btn-outline-primary" onclick="execLogin()">
+                送信
+              </button>
+              <div class="row mt-4">
+                <label for="login-result" class="col-md-2 col-form-label">結果</label>
+                <div class="col-md-10">
+                  <input type="text" id="login-result" class="form-control" readonly />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 予約ルートを 1 件取得 (getReservedRoute) -->
+      <section class="mt-5">
+        <h4 class="font-bold">API コール例 (リクエストボディなし)</h4>
+        <p>
+          spatial-id-svc-route: getReservedRoute 関数のサンプル » ID
+          を指定して、予約ルートを取得する
+        </p>
+        <div class="row">
+          <div class="card col-xl-10 mx-auto">
+            <div class="card-body py-4">
+              <div class="row">
+                <label for="getReservedRoute-id" class="col-md-2 col-form-label">
+                  予約ルート ID
+                </label>
+                <div class="col-md-10">
+                  <input
+                    type="text"
+                    id="getReservedRoute-id"
+                    class="form-control"
+                    value="1676526882"
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                class="mt-2 btn btn-outline-primary"
+                onclick="execGetReservedRoute()"
+              >
+                送信
+              </button>
+              <div class="row mt-4">
+                <label for="getReservedRoute-result" class="col-md-2 col-form-label">結果</label>
+                <div class="col-md-10">
+                  <textarea
+                    type="text"
+                    id="getReservedRoute-result"
+                    class="form-control"
+                    rows="10"
+                    readonly
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 割込禁止エリアを複数取得 (getBlockedAreas) -->
+      <section class="mt-5">
+        <h4 class="font-bold">API コール例 (リクエストボディあり, ストリームレスポンス)</h4>
+        <p>
+          spatial-id-svc-area: getBlockedAreas 関数のサンプル » 空間 ID
+          の範囲を指定して、割込禁止エリアを取得する
+        </p>
+        <div class="row">
+          <div class="card col-xl-10 mx-auto">
+            <div class="card-body py-4">
+              <div class="row">
+                <label for="getBlockedAreas-spatialId" class="col-md-2 col-form-label">
+                  空間 ID
+                </label>
+                <div class="col-md-10">
+                  <input
+                    type="text"
+                    id="getBlockedAreas-spatialId"
+                    class="form-control"
+                    value="12/0/3637/1612"
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                class="mt-2 btn btn-outline-primary"
+                onclick="execGetBlockedAreas()"
+              >
+                送信
+              </button>
+              <div class="row mt-4">
+                <label for="getBlockedAreas-result" class="col-md-2 col-form-label">結果</label>
+                <div class="col-md-10">
+                  <textarea
+                    type="text"
+                    id="getBlockedAreas-result"
+                    class="form-control"
+                    rows="10"
+                    readonly
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
