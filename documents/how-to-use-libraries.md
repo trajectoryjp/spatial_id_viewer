@@ -27,10 +27,8 @@ yarn add -D typescript webpack ts-loader
 # すべてのモジュールをインストールする例
 yarn add \
   spatial-id-converter@file:[このリポジトリのパス]/packages/spatial-id-converter/dist \
-  spatial-id-converter-internal@file:[このリポジトリのパス]/packages/spatial-id-converter-internal/dist \
   spatial-id-svc-area@file:[このリポジトリのパス]/packages/spatial-id-svc-area/dist \
   spatial-id-svc-base@file:[このリポジトリのパス]/packages/spatial-id-svc-base/dist \
-  spatial-id-svc-barriers-internal@file:[このリポジトリのパス]/packages/spatial-id-svc-barriers-internal/dist \
   spatial-id-svc-common@file:[このリポジトリのパス]/packages/spatial-id-svc-common/dist \
   spatial-id-svc-route@file:[このリポジトリのパス]/packages/spatial-id-svc-route/dist
 ```
@@ -68,12 +66,11 @@ yarn add \
 .d.ts ファイルのパスへのリンクを示します:
 
 * [spatial-id-converter](../packages/spatial-id-converter/dist/index.d.ts)
-* [spatial-id-converter-internal](../packages/spatial-id-converter-internal/dist/index.d.ts)
+dist/index.d.ts)
 * [spatial-id-svc-base](../packages/spatial-id-svc-base/dist/index.d.ts)
 * [spatial-id-svc-common](../packages/spatial-id-svc-common/dist/index.d.ts)
 * [spatial-id-svc-area](../packages/spatial-id-svc-area/dist/index.d.ts)
 * [spatial-id-svc-route](../packages/spatial-id-svc-route/dist/index.d.ts)
-* [spatial-id-svc-barriers-internal](../packages/spatial-id-svc-barriers-internal/dist/index.d.ts)
 
 また、具体的な呼び出し方の一例はサンプルプロジェクト ([Webpack 向け](../examples/webpack-ts/), [直接利用向け](../examples/use-directly/)) を参照してください。
 
@@ -85,9 +82,7 @@ yarn add \
 | ライブラリ                                | 依存先                                     |
 | ----------------------------------------- | ------------------------------------------ |
 | spatial-id-converter                      | なし                                       |
-| spatial-id-converter-internal (内部用)    | spatial-id-converter                       |
 | spatial-id-svc-base                       | なし                                       |
 | spatial-id-svc-common                     | spatial-id-svc-base                        |
 | spatial-id-svc-area                       | spatial-id-svc-base, spatial-id-svc-common |
 | spatial-id-svc-route                      | spatial-id-svc-base, spatial-id-svc-common |
-| spatial-id-svc-barriers-internal (内部用) | spatial-id-svc-base                        |

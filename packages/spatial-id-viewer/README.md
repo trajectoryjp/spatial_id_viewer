@@ -22,7 +22,7 @@ GUI クライアント本体の実装。
 
 ```sh
 # API サーバの URL
-NEXT_PUBLIC_API_BASE_URL=https://trjxdev.trajectory.jp
+NEXT_PUBLIC_API_BASE_URL=http://api.hoge.com/
 ```
 
 
@@ -32,12 +32,14 @@ NEXT_PUBLIC_API_BASE_URL=https://trjxdev.trajectory.jp
 
 * 任意にディレクトリを作成します。以下、このディレクトリ内で作業します。
 * このディレクトリ内の docker-compose.yml を配置・編集します。デプロイ環境にはリポジトリ自体は必要なく、編集したこのファイルのみの配置で問題ありません。
+<!--
 * yaml 内の image の値を、コンテナレジストリのものに書き換えます。以下開発環境での例となります。
 
 ```yaml
 image: 531630878474.dkr.ecr.ap-northeast-1.amazonaws.com/spid_viewer:dev-latest
 ```
-
+ -->
+ 
 * HTTP サーバに割り当てるポート番号を yaml の ports に記載します。
 
 ```yaml
