@@ -1,0 +1,10 @@
+{
+  "name": "spatial-id-svc-base",
+  "version": "0.1.0",
+  "license": "UNLICENSED",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "sideEffects": false
+}
