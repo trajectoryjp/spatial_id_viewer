@@ -375,31 +375,62 @@ export const getRiskLevels = async function* ({
   }
 };
 
-export const getWeather = async ({ baseUrl, authInfo, id, abortSignal }: GetBlockedAreaParams) => {
-  return await fetchJson<GetBlockedAreaResponse>({
-    method: 'POST',
-    baseUrl,
-    path: '/uas/api/airmobility/v3/get-object',
-    authInfo,
-    payload: { objectId: id },
-    abortSignal,
-  });
-};
-
-export const getSignalArea = async ({
+// export const getWeather = async ({ baseUrl, authInfo, id, abortSignal }: GetBlockedAreaParams) => {
+//   return await fetchJson<GetBlockedAreaResponse>({
+//     method: 'POST',
+//     baseUrl,
+//     path: '/uas/api/airmobility/v3/get-object',
+//     authInfo,
+//     payload: { objectId: id },
+//     abortSignal,
+//   });
+// };
+export const getWeather = async function* ({
   baseUrl,
   authInfo,
   id,
   abortSignal,
-}: GetBlockedAreaParams) => {
-  return await fetchJson<GetBlockedAreaResponse>({
+}: GetBlockedAreaParams) {
+  let objectId = '0';
+  for await (const chunk of fetchJsonStream<GetBlockedAreaResponse>({
     method: 'POST',
     baseUrl,
-    path: '/uas/api/airmobility/v3/get-object',
+    path: `/uas/api/airmobility/v3/get-object`,
     authInfo,
     payload: { objectId: id },
     abortSignal,
-  });
+  })) {
+    if (chunk.result.objectId !== '0') {
+      objectId = chunk.result.objectId;
+      continue;
+    }
+    chunk.result.objectId = objectId;
+    yield chunk;
+  }
+};
+
+export const getSignalArea = async function* ({
+  baseUrl,
+  authInfo,
+  id,
+  abortSignal,
+}: GetBlockedAreaParams) {
+  let objectId = '0';
+  for await (const chunk of fetchJsonStream<GetBlockedAreaResponse>({
+    method: 'POST',
+    baseUrl,
+    path: `/uas/api/airmobility/v3/get-object`,
+    authInfo,
+    payload: { objectId: id },
+    abortSignal,
+  })) {
+    if (chunk.result.objectId !== '0') {
+      objectId = chunk.result.objectId;
+      continue;
+    }
+    chunk.result.objectId = objectId;
+    yield chunk;
+  }
 };
 
 export const getRisk = async ({ baseUrl, authInfo, id, abortSignal }: GetBlockedAreaParams) => {
@@ -438,21 +469,28 @@ export interface GetBlockedAreaParams {
   abortSignal?: AbortSignal;
 }
 
-/** ID を指定して割込禁止エリアを 1 件取得する */
-export const getBlockedArea = async ({
+export const getBlockedArea = async function* ({
   baseUrl,
   authInfo,
   id,
   abortSignal,
-}: GetBlockedAreaParams) => {
-  return await fetchJson<GetBlockedAreaResponse>({
+}: GetBlockedAreaParams) {
+  let objectId = '0';
+  for await (const chunk of fetchJsonStream<GetBlockedAreaResponse>({
     method: 'POST',
     baseUrl,
-    path: '/uas/api/airmobility/v3/get-object',
+    path: `/uas/api/airmobility/v3/get-object`,
     authInfo,
     payload: { objectId: id },
     abortSignal,
-  });
+  })) {
+    if (chunk.result.objectId !== '0') {
+      objectId = chunk.result.objectId;
+      continue;
+    }
+    chunk.result.objectId = objectId;
+    yield chunk;
+  }
 };
 
 export interface CreateBlockedAreaParams {

@@ -3,13 +3,12 @@ import Head from 'next/head';
 import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLatest, useUnmount } from 'react-use';
 
-import { CuboidCollection, SpatialId } from 'spatial-id-converter';
+import { CuboidCollection } from 'spatial-id-converter';
 import {
   deleteOverlayArea,
   GetAreaRequest,
   getOverlayArea,
   getOverlayAreas,
-  OverlayAreaRquest,
 } from 'spatial-id-svc-area';
 import { RequestTypes } from 'spatial-id-svc-common';
 
@@ -19,7 +18,8 @@ import { IStore } from '#app/components/area-viewer/store';
 import { WithAuthGuard } from '#app/components/auth-guard';
 import { apiBaseUrl } from '#app/constants';
 import { useAuthInfo } from '#app/stores/auth-info';
-import { convertToModels, processArea, processAreas } from '#app/utils/create-areas';
+import { convertToModels, processAreas } from '#app/utils/create-areas';
+import { processBarriers } from '#app/utils/create-process-barrier-map';
 import { WithStore } from '#app/views/blocked-areas/view/store';
 
 interface OverlayAreaInfo extends Record<string, unknown> {
@@ -31,13 +31,18 @@ const useLoadModel = () => {
   const authInfo = useLatest(useAuthInfo((s) => s.authInfo));
 
   const loadModel = useCallback(async (id: string) => {
-    const spatialIds = processArea(
-      (await getOverlayArea({ baseUrl: apiBaseUrl, authInfo: authInfo.current, id })).result,
+    const spatialIds = await processBarriers(
+      getOverlayArea({ baseUrl: apiBaseUrl, authInfo: authInfo.current, id }),
       'overlayArea'
     );
 
+    const barrier = spatialIds.get(id);
+    if (barrier === undefined) {
+      throw new Error(`barrier ${id} not found in response`);
+    }
+
     const model = new CuboidCollection<OverlayAreaInfo>(
-      await Promise.all([...spatialIds.values()].map((s) => s.createCuboid()))
+      await Promise.all([...barrier.values()].map((s) => s.createCuboid()))
     );
 
     return model;

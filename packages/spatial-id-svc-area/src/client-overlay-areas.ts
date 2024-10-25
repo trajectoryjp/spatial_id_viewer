@@ -80,20 +80,28 @@ export const createOverlayArea = async ({
   return resp;
 };
 
-export const getOverlayArea = async ({
+export const getOverlayArea = async function* ({
   baseUrl,
   authInfo,
   id,
   abortSignal,
-}: GetOverlayAreaParams) => {
-  return await fetchJson<GetOverlayAreaResponse>({
+}: GetOverlayAreaParams) {
+  let objectId = '0';
+  for await (const chunk of fetchJsonStream<GetOverlayAreaResponse>({
     method: 'POST',
     baseUrl,
-    path: '/uas/api/airmobility/v3/get-object',
+    path: `/uas/api/airmobility/v3/get-object`,
     authInfo,
     payload: { objectId: id },
     abortSignal,
-  });
+  })) {
+    if (chunk.result.objectId !== '0') {
+      objectId = chunk.result.objectId;
+      continue;
+    }
+    chunk.result.objectId = objectId;
+    yield chunk;
+  }
 };
 
 export const getOverlayAreas = async function* ({

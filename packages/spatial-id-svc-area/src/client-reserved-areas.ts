@@ -41,11 +41,11 @@ export interface GetEmergencyAreas {
   objects: SpatialDefinition[];
 }
 
-export interface GetReservedAreaResponse {
+export interface GetReservedAreaResponse extends SpatialDefinition {
   responseHeader?: CommonResponseHeader;
   // reservedArea: ReservedArea;
-  result: SpatialDefinition;
-  error: ErrorResponse;
+  // result: SpatialDefinition;
+  // error: ErrorResponse;
 }
 
 export interface CreateReservedAreaRequest {
@@ -96,21 +96,28 @@ export interface GetReservedAreaParams {
   abortSignal?: AbortSignal;
 }
 
-/** ID を指定して予約エリアを 1 件取得する */
-export const getReservedArea = async ({
+export const getReservedArea = async function* ({
   baseUrl,
   authInfo,
   id,
   abortSignal,
-}: GetReservedAreaParams) => {
-  return await fetchJson<GetReservedAreaResponse>({
+}: GetReservedAreaParams) {
+  let objectId = '0';
+  for await (const chunk of fetchJsonStream<GetReservedAreaResponse>({
     method: 'POST',
     baseUrl,
-    path: '/uas/api/airmobility/v3/get-object',
+    path: `/uas/api/airmobility/v3/get-object`,
     authInfo,
     payload: { objectId: id },
     abortSignal,
-  });
+  })) {
+    if (chunk.result.objectId !== '0') {
+      objectId = chunk.result.objectId;
+      continue;
+    }
+    chunk.result.objectId = objectId;
+    yield chunk;
+  }
 };
 
 export interface CreateReservedAreaParams {

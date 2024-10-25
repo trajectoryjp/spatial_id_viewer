@@ -2,7 +2,6 @@ import { Cesium3DTileStyle } from 'cesium';
 import Head from 'next/head';
 import { ChangeEvent, useCallback, useEffect, useState } from 'react';
 import { useLatest } from 'react-use';
-import { useStore } from 'zustand';
 
 import { CuboidCollection, SpatialId } from 'spatial-id-converter';
 import {
@@ -22,10 +21,9 @@ import { DisplayDetails } from '#app/components/area-viewer/interface';
 import { WithAuthGuard } from '#app/components/auth-guard';
 import { apiBaseUrl } from '#app/constants';
 import { useAuthInfo } from '#app/stores/auth-info';
-import { dateToStringUnixTime } from '#app/utils/date-to-string-unix-time';
+import { processBarriers } from '#app/utils/create-process-barrier-map';
 import { mapGetOrSet } from '#app/utils/map-get-or-set';
-import { AdditionalSettings } from '#app/views/reserved-areas/view/additonal-settings';
-import { useStoreApi, WithStore } from '#app/views/reserved-areas/view/store';
+import { WithStore } from '#app/views/reserved-areas/view/store';
 
 /** 表示するメタデータ */
 interface ReservedAreaInfo extends Record<string, unknown> {
@@ -82,13 +80,17 @@ const useLoadModel = () => {
   const authInfo = useLatest(useAuthInfo((s) => s.authInfo));
 
   const loadModel = useCallback(async (id: string) => {
-    const spatialIds = processReservedArea(
-      (await getReservedArea({ baseUrl: apiBaseUrl, authInfo: authInfo.current, id })).result,
+    const spatialIds = await processBarriers(
+      getReservedArea({ baseUrl: apiBaseUrl, authInfo: authInfo.current, id }),
       'emergencyArea'
     );
 
+    const barrier = spatialIds.get(id);
+    if (barrier === undefined) {
+      throw new Error(`barrier ${id} not found in response`);
+    }
     const model = new CuboidCollection<ReservedAreaInfo>(
-      await Promise.all([...spatialIds.values()].map((s) => s.createCuboid()))
+      await Promise.all([...barrier.values()].map((s) => s.createCuboid()))
     );
 
     return model;
