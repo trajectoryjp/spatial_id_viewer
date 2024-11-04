@@ -22,6 +22,7 @@ import { WithAuthGuard } from '#app/components/auth-guard';
 import { apiBaseUrl } from '#app/constants';
 import { useAuthInfo } from '#app/stores/auth-info';
 import { processArea, processAreas } from '#app/utils/create-areas';
+import { processBarriers } from '#app/utils/create-process-barrier-map';
 import { dateToStringUnixTime } from '#app/utils/date-to-string-unix-time';
 import { mapGetOrSet } from '#app/utils/map-get-or-set';
 import { AdditionalSettings } from '#app/views/reserved-routes/view/additonal-settings';
@@ -156,16 +157,18 @@ const useLoadModel = () => {
   const authInfo = useLatest(useAuthInfo((s) => s.authInfo));
 
   const loadModel = useCallback(async (id: string) => {
-    const spatialIds = processArea(
-      (await getReservedRoute({ baseUrl: apiBaseUrl, authInfo: authInfo.current, id })).result,
+    const spatialIds = await processBarriers(
+      getReservedRoute({ baseUrl: apiBaseUrl, authInfo: authInfo.current, id }),
       'reserveArea'
     );
 
-    //get points between in the line between spatial ids
-    // mergeMaps(spatialIds);
+    const route = spatialIds.get(id);
+    if (route === undefined) {
+      throw new Error(`private barrier ${id} not found in response`);
+    }
 
     const model = new CuboidCollection<ReservedRouteInfo>(
-      await Promise.all([...spatialIds.values()].map((s) => s.createCuboid()))
+      await Promise.all([...route.values()].map((s) => s.createCuboid()))
     );
 
     return model;

@@ -90,12 +90,12 @@ export const Menu = () => {
         </MenuEntry>
       </MenuCategory>
 
-      <MenuCategory>
+      {/* <MenuCategory>
         <MenuTitle>ルート設計</MenuTitle>
         <MenuEntry>
           <Link href="/routes/create">生成</Link>
         </MenuEntry>
-      </MenuCategory>
+      </MenuCategory> */}
 
       <MenuCategory>
         <MenuTitle>天気</MenuTitle>
