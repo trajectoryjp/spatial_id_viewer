@@ -14,7 +14,7 @@ interface LoginResponseBody {
 export interface LoginRequestParams {
   baseUrl: string;
   userID: string;
-  organizationID: string;
+  organizationID?: string;
   password: string;
   abortSignal?: AbortSignal;
 }
@@ -36,7 +36,7 @@ export const login = async ({
     path: '/gen/api/generic/v3/connect-server',
     payload: {
       userID,
-      organizationID,
+      // organizationID,
       password,
     } as LoginRequestBody,
     abortSignal,

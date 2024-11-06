@@ -137,12 +137,10 @@ class Area implements IArea {
       Cartographic.fromCartesian(this.point1),
       this.tileZ
     );
-    // console.log('tile 1', tile1);
     const tile2 = new WebMercatorTilingScheme().positionToTileXY(
       Cartographic.fromCartesian(this.point2),
       this.tileZ
     );
-    // console.log('tile 2', tile2);
 
     this.tileX = [Math.min(tile1.x, tile2.x), Math.max(tile1.x, tile2.x)];
     this.tileY = [Math.min(tile1.y, tile2.y), Math.max(tile1.y, tile2.y)];

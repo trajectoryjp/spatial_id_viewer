@@ -1,5 +1,10 @@
 export interface OwnerAddressInfo {
-  grpc: string;
-  rest: string;
-  other: string;
+  type: StreamType;
+  input: string;
+}
+
+export enum StreamType {
+  grpc = 'grpc',
+  rest = 'rest',
+  other = 'other',
 }

@@ -20,9 +20,7 @@ const useRegister = () => {
       object: {
         overlayArea: {
           ownerAddress: {
-            grpc: areas.ownerAddressInfo.grpc,
-            other: areas.ownerAddressInfo.other,
-            rest: areas.ownerAddressInfo.rest,
+            [areas.ownerAddressInfo.type]: areas.ownerAddressInfo.input,
           },
           voxelValues: areas.data
             .map((area) =>

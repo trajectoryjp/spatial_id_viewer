@@ -1,21 +1,15 @@
 import { Cesium3DTileStyle } from 'cesium';
-import { castDraft } from 'immer';
 import Head from 'next/head';
 import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { toast, ToastOptions } from 'react-toastify';
 import { useLatest, useUnmount } from 'react-use';
-import { useStore } from 'zustand';
 
 import { CuboidCollection, SpatialId } from 'spatial-id-converter';
 import {
-  BlockedArea,
   deleteBlockedArea,
   GetAreaRequest,
   getBlockedArea,
   GetBlockedAreas,
   getBlockedAreas,
-  GetBlockedAreasResponse,
-  watchBlockedAreas,
 } from 'spatial-id-svc-area';
 import { StreamResponse } from 'spatial-id-svc-base';
 import { RequestTypes } from 'spatial-id-svc-common';
@@ -27,11 +21,8 @@ import { WithAuthGuard } from '#app/components/auth-guard';
 import { apiBaseUrl } from '#app/constants';
 import { useAuthInfo } from '#app/stores/auth-info';
 import { processBarriers } from '#app/utils/create-process-barrier-map';
-import { dateToStringUnixTime } from '#app/utils/date-to-string-unix-time';
 import { mapGetOrSet } from '#app/utils/map-get-or-set';
-import { warnIfTokenExpired } from '#app/utils/warn-if-token-expired';
-import { AdditionalSettings } from '#app/views/blocked-areas/view/additonal-settings';
-import { useStoreApi, WithStore } from '#app/views/blocked-areas/view/store';
+import { WithStore } from '#app/views/blocked-areas/view/store';
 
 /** 表示するメタデータ */
 interface BlockedAreaInfo extends Record<string, unknown> {
@@ -105,13 +96,18 @@ const useLoadModel = () => {
   const authInfo = useLatest(useAuthInfo((s) => s.authInfo));
 
   const loadModel = useCallback(async (id: string) => {
-    const spatialIds = processBlockedArea(
-      (await getBlockedArea({ baseUrl: apiBaseUrl, authInfo: authInfo.current, id })).result,
+    const spatialIds = await processBarriers(
+      getBlockedArea({ baseUrl: apiBaseUrl, authInfo: authInfo.current, id }),
       'restrictedArea'
     );
 
+    const barrier = spatialIds.get(id);
+    if (barrier === undefined) {
+      throw new Error(`barrier ${id} not found in response`);
+    }
+
     const model = new CuboidCollection<BlockedAreaInfo>(
-      await Promise.all([...spatialIds.values()].map((s) => s.createCuboid()))
+      await Promise.all([...barrier.values()].map((s) => s.createCuboid()))
     );
 
     return model;
@@ -273,7 +269,6 @@ const BlockedAreasViewer = () => {
   };
   useEffect(() => {
     setTilesetStyle(tilesetStyleFn(tileOpacity));
-    console.log(tilesetStyleFn(tileOpacity));
   }, [tileOpacity]);
 
   return (

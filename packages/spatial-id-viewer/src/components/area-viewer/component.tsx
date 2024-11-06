@@ -197,7 +197,7 @@ const AreaViewerLayout = <Metadata extends Record<string, unknown> = Record<stri
             <CuboidCollectionModel key={modelId} data={model} style={props.tilesetStyle} />
           ))}
 
-          {[...models.entries()].map(([modelId, model]) =>
+          {/* {[...models.entries()].map(([modelId, model]) =>
             Array.from({ length: model.cuboids.length - 1 }).map((_, i) => {
               const p1 = model.cuboids[i];
               const p2 = model.cuboids[i + 1];
@@ -231,7 +231,7 @@ const AreaViewerLayout = <Metadata extends Record<string, unknown> = Record<stri
                 <PointGraphics pixelSize={16} color={Color.YELLOW} />
               </Entity>
             ))
-          )}
+          )} */}
         </Viewer>
         <Navigation>
           {page === Pages.SelectFunction && <SelectFunctionFragment />}

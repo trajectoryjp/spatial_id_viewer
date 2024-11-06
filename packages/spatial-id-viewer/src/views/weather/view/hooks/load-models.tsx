@@ -8,6 +8,7 @@ import {
   getWeatherAreas,
   GetWeatherRequest,
   SpatialDefinition,
+  SpatialDefinitions,
 } from 'spatial-id-svc-area';
 import { StreamResponse } from 'spatial-id-svc-base';
 
@@ -36,13 +37,17 @@ export const useLoadModel = (type: string) => {
   const authInfo = useLatest(useAuthInfo((s) => s.authInfo));
 
   const loadModel = useCallback(async (id: string) => {
-    const spatialIds = processWeather(
-      (await getWeather({ baseUrl: apiBaseUrl, authInfo: authInfo.current, id })).result,
+    const spatialIds = await processWeathers(
+      getWeather({ baseUrl: apiBaseUrl, authInfo: authInfo.current, id }),
       type
     );
+    const barrier = spatialIds.get(id);
+    if (barrier === undefined) {
+      throw new Error(`barrier ${id} not found in response`);
+    }
 
     const model = new CuboidCollection<WeatherInfo>(
-      await Promise.all([...spatialIds.values()].map((s) => s.createCuboid()))
+      await Promise.all([...barrier.values()].map((s) => s.createCuboid()))
     );
 
     return model;
@@ -93,26 +98,93 @@ export const useDeleteModel = () => {
   return deleteModel;
 };
 
-export const processWeather = (area: any, type: string) => {
-  const areaId = area.objectId;
-  const spatialIds = new Map<string, SpatialId<WeatherInfo>>();
-  for (const spatialIdentification of area[type].voxelValues) {
-    const spatialId = spatialIdentification.id.ID;
+// export const processWeather = (area: any, type: string) => {
+//   const areaId = area.objectId;
+//   const spatialIds = new Map<string, SpatialId<WeatherInfo>>();
+//   for (const spatialIdentification of area[type].voxelValues) {
+//     const spatialId = spatialIdentification.id.ID;
+//     try {
+//       if (type === 'weather') {
+//         spatialIds.set(
+//           spatialId,
+//           SpatialId.fromString<WeatherInfo>(spatialId, {
+//             id: areaId,
+//             ...spatialIdentification.currentWeather,
+//           })
+//         );
+//       } else {
+//         spatialIds.set(
+//           spatialId,
+//           SpatialId.fromString<WeatherInfo>(spatialId, {
+//             id: areaId,
+//             ...spatialIdentification.forecast,
+//           })
+//         );
+//       }
+//     } catch (e) {
+//       console.error(e);
+//     }
+//   }
+
+//   return spatialIds;
+// };
+
+// interface GetAreas {
+//   objects: SpatialDefinition[];
+// }
+
+// export const processWeathers = async (
+//   result: AsyncGenerator<StreamResponse<GetAreas>>,
+//   type: string
+// ) => {
+//   const areas = new Map<string, Map<string, SpatialId<WeatherInfo>>>();
+//   for await (const resp of result) {
+//     for (const area of resp.result.objects) {
+//       const areaId = area.objectId;
+//       const spatialIds = mapGetOrSet(
+//         areas,
+//         areaId,
+//         () => new Map<string, SpatialId<WeatherInfo>>()
+//       );
+
+//       for (const [spatialId, spatialIdObj] of processWeather(area, type).entries()) {
+//         spatialIds.set(spatialId, spatialIdObj);
+//       }
+//     }
+//   }
+
+//   return areas;
+// };
+
+export const createWeatherMap = (
+  map: Map<string, Map<string, SpatialId<WeatherInfo>>>,
+  object: any,
+  type: string
+) => {
+  const objectId = object.objectId;
+  const spatialIds = mapGetOrSet(map, objectId, () => new Map<string, SpatialId<WeatherInfo>>());
+
+  for (const definition of object[type].voxelValues) {
+    const spatialId = definition.id.ID;
+    if (spatialIds.has(spatialId)) {
+      continue;
+    }
+
     try {
       if (type === 'weather') {
         spatialIds.set(
           spatialId,
           SpatialId.fromString<WeatherInfo>(spatialId, {
-            id: areaId,
-            ...spatialIdentification.currentWeather,
+            id: objectId,
+            ...definition.currentWeather,
           })
         );
       } else {
         spatialIds.set(
           spatialId,
           SpatialId.fromString<WeatherInfo>(spatialId, {
-            id: areaId,
-            ...spatialIdentification.forecast,
+            id: objectId,
+            ...definition.forecast,
           })
         );
       }
@@ -121,49 +193,22 @@ export const processWeather = (area: any, type: string) => {
     }
   }
 
-  return spatialIds;
+  return map;
 };
 
-interface GetAreas {
-  objects: SpatialDefinition[];
-}
-
 export const processWeathers = async (
-  result: AsyncGenerator<StreamResponse<GetAreas>>,
+  result: AsyncGenerator<StreamResponse<SpatialDefinition | SpatialDefinitions>>,
   type: string
 ) => {
-  const areas = new Map<string, Map<string, SpatialId<WeatherInfo>>>();
+  let barriers = new Map<string, Map<string, SpatialId<WeatherInfo>>>();
   for await (const resp of result) {
-    for (const area of resp.result.objects) {
-      const areaId = area.objectId;
-      const spatialIds = mapGetOrSet(
-        areas,
-        areaId,
-        () => new Map<string, SpatialId<WeatherInfo>>()
-      );
-
-      for (const [spatialId, spatialIdObj] of processWeather(area, type).entries()) {
-        spatialIds.set(spatialId, spatialIdObj);
+    if ('objectId' in resp.result) {
+      barriers = createWeatherMap(barriers, resp.result, type);
+    } else if ('objects' in resp.result) {
+      for (const object of resp.result.objects) {
+        barriers = createWeatherMap(barriers, object, type);
       }
     }
   }
-
-  return areas;
-};
-
-export const convertToModels = async (areas: Map<string, Map<string, SpatialId<WeatherInfo>>>) => {
-  const models = new Map(
-    (await Promise.all(
-      [...areas.entries()]
-        .filter(([, v]) => v.size)
-        .map(async ([areaId, spatialIds]) => [
-          areaId,
-          new CuboidCollection(
-            await Promise.all([...spatialIds.values()].map((s) => s.createCuboid()))
-          ),
-        ])
-    )) as [string, CuboidCollection<WeatherInfo>][]
-  );
-
-  return models;
+  return barriers;
 };

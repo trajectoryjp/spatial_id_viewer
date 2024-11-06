@@ -57,8 +57,6 @@ export const createUseAirspaceModels = <
         models = await loadAirSpaceModelsImpl.current(bbox);
       }
 
-      console.log(models);
-
       models.forEach((map) => {
         if (map.has(OUT_OF_SPACE)) {
           replaceOutOfSpaceModels.current(() => castDraft(map));

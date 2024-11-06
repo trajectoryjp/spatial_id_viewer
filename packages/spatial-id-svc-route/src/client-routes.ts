@@ -121,8 +121,8 @@ export interface GetReservedRoutesRequestV3 {
 export interface getPermittedAirSpaceRequest {
   figure: SpatialFigure;
   period: {
-    startTime: Date;
-    endTime: Date;
+    startTime: number;
+    endTime: number;
   };
   includeReserveArea: boolean;
 }
@@ -160,9 +160,8 @@ export interface GetReservedRouteResponse {
   routes: Route[];
 }
 
-export interface GetReservedRouteResponseV3 {
+export interface GetReservedRouteResponseV3 extends SpatialDefinition {
   responseHeader?: CommonResponseHeader;
-  result: SpatialDefinition;
   error: ErrorResponse;
 }
 
@@ -275,20 +274,44 @@ export interface GetReservedRouteParams {
 //   });
 // };
 
-export const getReservedRoute = async ({
+// export const getReservedRoute = async ({
+//   baseUrl,
+//   authInfo,
+//   id,
+//   abortSignal,
+// }: GetReservedRouteParams) => {
+//   return await fetchJson<GetReservedRouteResponseV3>({
+//     method: 'POST',
+//     baseUrl,
+//     path: `/uas/api/airmobility/v3/get-object`,
+//     authInfo,
+//     payload: { objectId: id },
+//     abortSignal,
+//   });
+// };
+
+export const getReservedRoute = async function* ({
   baseUrl,
   authInfo,
   id,
   abortSignal,
-}: GetReservedRouteParams) => {
-  return await fetchJson<GetReservedRouteResponseV3>({
+}: GetReservedRouteParams) {
+  let objectId = '0';
+  for await (const chunk of fetchJsonStream<GetReservedRouteResponseV3>({
     method: 'POST',
     baseUrl,
-    path: `/uas/api/airmobility/v3/get-object`,
+    path: '/uas/api/airmobility/v3/get-object',
     authInfo,
     payload: { objectId: id },
     abortSignal,
-  });
+  })) {
+    if (chunk.result.objectId !== '0') {
+      objectId = chunk.result.objectId;
+      continue;
+    }
+    chunk.result.objectId = objectId;
+    yield chunk;
+  }
 };
 
 export const getPermittedAirSpace = async function* ({
@@ -308,6 +331,23 @@ export const getPermittedAirSpace = async function* ({
     yield chunk;
   }
 };
+
+// export const getPermittedAirSpace = async  ({
+//   baseUrl,
+//   authInfo,
+//   payload,
+//   abortSignal,
+// }: GetPermittedRoutesParams) =>{
+//   return await fetchJson<GetPermittedRoutesResponse>({
+//     method: 'POST',
+//     baseUrl,
+//     path: '/uas/api/airmobility/v3/select-airspace-arrangement',
+//     authInfo,
+//     payload,
+//     abortSignal,
+//   })
+
+// };
 
 export const getPermittedAirSpaceStream = async function* ({
   baseUrl,
@@ -466,7 +506,7 @@ export const createReservedRoute = async ({
     method: 'POST',
     baseUrl,
     // path: '/uas/api/airmobility/v3/put-reserve-area',
-    path: '/uas/api/airmobility/v3/put-object',
+    path: '/uas/api/airmobility/v3/put-reserve-area',
     authInfo,
     payload,
     abortSignal,

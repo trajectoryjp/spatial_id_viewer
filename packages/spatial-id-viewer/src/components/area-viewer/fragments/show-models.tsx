@@ -56,19 +56,19 @@ export const useViewingBoxTile = () => {
     const point1 = Cartographic.fromRadians(rect.west, rect.north);
     const point2 = Cartographic.fromRadians(rect.east, rect.south);
 
-    const tubeStart = {
-      latitude: point1.latitude,
-      longitude: point1.longitude,
-      altitude: altitude,
-      altitudeAttribute: 'ALTITUDE_ATTRIBUTE_ELLIPSOID', // Adjust as needed
-    };
+    // const tubeStart = {
+    //   latitude: point1.latitude,
+    //   longitude: point1.longitude,
+    //   altitude: altitude,
+    //   altitudeAttribute: 'ALTITUDE_ATTRIBUTE_ELLIPSOID', // Adjust as needed
+    // };
 
-    const tubeEnd = {
-      latitude: point2.latitude,
-      longitude: point2.longitude,
-      altitude: altitude,
-      altitudeAttribute: 'ALTITUDE_ATTRIBUTE_ELLIPSOID', // Adjust as needed
-    };
+    // const tubeEnd = {
+    //   latitude: point2.latitude,
+    //   longitude: point2.longitude,
+    //   altitude: altitude,
+    //   altitudeAttribute: 'ALTITUDE_ATTRIBUTE_ELLIPSOID', // Adjust as needed
+    // };
 
     // point1 と point2 の両方が収まる最小のタイルを取得
     for (let tileZ = MAX_Z; tileZ >= MIN_Z; tileZ--) {
@@ -77,15 +77,17 @@ export const useViewingBoxTile = () => {
       if (tile1 && tile2 && tile1.equals(tile2)) {
         const tileF = Math.floor((2 ** tileZ * altitude) / 2 ** 25);
 
-        const Fig = createFigure(
-          new SpatialId(tileZ, tileF, tile1.x, tile1.y),
-          tubeStart,
-          tubeEnd,
-          0,
-          {}
-        );
+        // const Fig = createFigure(
+        //   new SpatialId(tileZ, tileF, tile1.x, tile1.y),
+        //   tubeStart,
+        //   tubeEnd,
+        //   0,
+        //   {}
+        // );
+        const Fig = {
+          identification: { ID: new SpatialId(tileZ, tileF, tile1.x, tile1.y) },
+        };
         return Fig;
-        // return new SpatialId(tileZ, tileF, tile1.x, tile1.y);
       }
     }
 
@@ -93,16 +95,18 @@ export const useViewingBoxTile = () => {
     const tileCenter = new WebMercatorTilingScheme().positionToTileXY(pointCenter, MIN_Z);
     const tileF = Math.floor((2 ** MIN_Z * altitude) / 2 ** 25);
 
-    const Figure = createFigure(
-      new SpatialId(MIN_Z, tileF, tileCenter.x, tileCenter.y),
-      tubeStart,
-      tubeEnd,
-      0,
-      {}
-    );
+    // const Figure = createFigure(
+    //   new SpatialId(MIN_Z, tileF, tileCenter.x, tileCenter.y),
+    //   tubeStart,
+    //   tubeEnd,
+    //   0,
+    //   {}
+    // );
+    const Figure = {
+      identification: { ID: new SpatialId(MIN_Z, tileF, tileCenter.x, tileCenter.y) },
+    };
 
     return Figure;
-    // return new SpatialId(MIN_Z, tileF, tileCenter.x, tileCenter.y);
   }, []);
 
   // camera.changed で取れる表示範囲変更イベントでは漏れがあるようなので、タイマーで実装
@@ -154,8 +158,8 @@ export const ShowModelsFragment = memo(
     const [tileF, setTileF] = useState(0);
     const vbox = useViewingBoxTile();
 
-    const [tileF1, setTileF1] = useState<number>(0);
-    const [tileF2, setTileF2] = useState<number>(0);
+    // const [tileF1, setTileF1] = useState<number>(0);
+    // const [tileF2, setTileF2] = useState<number>(0);
 
     useEffect(() => {
       if (isTileFAuto && vbox) {
@@ -189,11 +193,12 @@ export const ShowModelsFragment = memo(
         spatialID.y
       ).toString();
 
-      figure.tube.start.altitude = tileF1;
-      figure.tube.end.altitude = tileF2;
+      // figure.tube.start.altitude = tileF1;
+      // figure.tube.end.altitude = tileF2;
 
       const displayDetails: any = {
-        figure: { ...figure, identification: { ID: newSpatialID } },
+        // figure: { ...figure, identification: { ID: newSpatialID } },
+        figure: { identification: { ID: newSpatialID } },
       };
 
       if (requestType === RequestTypes.AIR_SPACE) {
@@ -244,13 +249,13 @@ export const ShowModelsFragment = memo(
       setTileF(replaceNaN(ev.target.valueAsNumber, 0));
     };
 
-    const onTileF1Change = (ev: ChangeEvent<HTMLInputElement>) => {
-      setTileF1(replaceNaN(ev.target.valueAsNumber, 0));
-    };
+    // const onTileF1Change = (ev: ChangeEvent<HTMLInputElement>) => {
+    //   setTileF1(replaceNaN(ev.target.valueAsNumber, 0));
+    // };
 
-    const onTileF2Change = (ev: ChangeEvent<HTMLInputElement>) => {
-      setTileF2(replaceNaN(ev.target.valueAsNumber, 0));
-    };
+    // const onTileF2Change = (ev: ChangeEvent<HTMLInputElement>) => {
+    //   setTileF2(replaceNaN(ev.target.valueAsNumber, 0));
+    // };
 
     const onDeleteButtonClick = async () => {
       setLoading(true);
@@ -305,7 +310,7 @@ export const ShowModelsFragment = memo(
               </Button>
             </NavigationButtons>
             {children}
-            <div>
+            {/* <div>
               <p>開始高度と終了高度を入力してください</p>
               <TextInput
                 type="number"
@@ -324,7 +329,7 @@ export const ShowModelsFragment = memo(
                 min={0}
                 max={24}
               />
-            </div>
+            </div> */}
             <div>
               高度 (f):
               <Checkbox

@@ -4,7 +4,7 @@ import { useMount } from 'react-use';
 
 import { OwnerAddressFragmentProps } from '#app/components/area-creator';
 import { NavigationButtons } from '#app/components/navigation';
-import { OwnerAddressInfo } from '#app/views/overlay-areas/create/interfaces';
+import { OwnerAddressInfo, StreamType } from '#app/views/overlay-areas/create/interfaces';
 
 export const OwnerAddressFragment = memo(
   ({
@@ -13,33 +13,27 @@ export const OwnerAddressFragment = memo(
     navigatePrev,
     navigateNext,
   }: OwnerAddressFragmentProps<OwnerAddressInfo>) => {
-    const [rest, setrest] = useState<string>('');
-    const [grpc, setgrpc] = useState<string>('');
-    const [other, setother] = useState<string>('');
+    const [type, setType] = useState<StreamType>(StreamType.grpc);
+    const [input, setInput] = useState<string>('');
 
     useMount(() => {
       if (ownerAddressInfo !== null) {
-        setrest(ownerAddressInfo.rest);
-        setgrpc(ownerAddressInfo.grpc);
-        setother(ownerAddressInfo.other);
+        setType(ownerAddressInfo.type);
+        setInput(ownerAddressInfo.input);
       }
     });
 
-    const onRestChange = (ev: ChangeEvent<HTMLInputElement>) => {
-      setrest(ev.target.value);
+    const onTypeChange = (ev: ChangeEvent<HTMLInputElement>) => {
+      setType(ev.target.value as StreamType);
     };
-    const onGrpcChange = (ev: ChangeEvent<HTMLInputElement>) => {
-      setgrpc(ev.target.value);
-    };
-    const onOtherChange = (ev: ChangeEvent<HTMLInputElement>) => {
-      setother(ev.target.value);
+    const onInputChange = (ev: ChangeEvent<HTMLInputElement>) => {
+      setInput(ev.target.value);
     };
 
     const apply = () => {
       setOwnerAddressInfo({
-        rest,
-        grpc,
-        other,
+        type,
+        input,
       });
     };
 
@@ -53,37 +47,37 @@ export const OwnerAddressFragment = memo(
       navigateNext();
     };
 
-    const restId = useId();
-    const grpcId = useId();
-    const otherId = useId();
+    const inputId = useId();
 
     return (
       <>
         <p>所有者の住所情報を入力してください</p>
         <div>
+          <div className="flex flex-col">
+            {Object.values(StreamType).map((streamType) => (
+              <label key={streamType}>
+                <input
+                  type="radio"
+                  value={streamType}
+                  checked={type === streamType}
+                  onChange={onTypeChange}
+                />
+                {streamType}
+              </label>
+            ))}
+          </div>
           <p>
-            <label htmlFor={grpcId}>grpc</label>
-          </p>
-          <TextInput type="text" id={grpcId} required={true} value={grpc} onChange={onGrpcChange} />
-        </div>
-        <div>
-          <p>
-            <label htmlFor={restId}>rest</label>
-          </p>
-          <TextInput type="text" id={restId} required={true} value={rest} onChange={onRestChange} />
-        </div>
-        <div>
-          <p>
-            <label htmlFor={otherId}>other</label>
+            <label htmlFor={inputId}>住所 </label>
           </p>
           <TextInput
             type="text"
-            id={otherId}
+            id={inputId}
             required={true}
-            value={other}
-            onChange={onOtherChange}
+            value={input}
+            onChange={onInputChange}
           />
         </div>
+
         <NavigationButtons>
           <Button color="dark" onClick={onBackButtonClick}>
             前へ
