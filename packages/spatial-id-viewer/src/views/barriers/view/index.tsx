@@ -123,7 +123,6 @@ const BarriersViewer = () => {
   };
   useEffect(() => {
     setTilesetStyle(tilesetStyleFn(tileOpacity));
-    console.log(tilesetStyleFn(tileOpacity));
   }, [tileOpacity]);
 
   return (

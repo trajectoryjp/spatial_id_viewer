@@ -164,7 +164,6 @@ const ReservedAreasViewer = () => {
   };
   useEffect(() => {
     setTilesetStyle(tilesetStyleFn(tileOpacity));
-    console.log(tilesetStyleFn(tileOpacity));
   }, [tileOpacity]);
 
   return (

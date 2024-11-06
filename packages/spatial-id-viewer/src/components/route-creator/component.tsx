@@ -75,7 +75,6 @@ const RouteCreatorLayout = <
   const selectedFeature = useStore(store, (s) => s.waypoints.selected);
   const pointingFeature = useStore(store, (s) => s.waypoints.pointing);
   const update = useStore(store, (s) => s.update);
-  console.log(waypoints);
 
   useEffect(
     () => void update((s) => (s.wholeRouteInfoFragment = wholeRouteInfoFragment)),
@@ -97,15 +96,12 @@ const RouteCreatorLayout = <
     }
 
     const position = (ev as CesiumScreenSpaceEventHandler.PositionedEvent).position;
-    console.log('position', position);
     const object = viewerRef.current.cesiumElement.scene.pick(position);
     update((s) => s.waypoints.applyToClicked(object));
-    console.log('object', object);
 
     const ray = viewerRef.current.cesiumElement.camera.getPickRay(position);
     const scene = viewerRef.current.cesiumElement.scene;
     const clickedPoint = scene.globe.pick(ray, scene);
-    console.log('clickedPoint', clickedPoint);
     if (clickedPoint !== undefined) {
       update((s) => (s.clickedPoint = clickedPoint));
     }

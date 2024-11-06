@@ -194,10 +194,6 @@ const AreaCreatorLayout = <
     update((s) => (s.clickedPoint = clickedPoint));
   }, []);
 
-  // useEffect(() => {
-  //   console.log(areas);
-  // }, [areas]);
-
   return (
     <>
       <ScreenSpaceEventHandler>

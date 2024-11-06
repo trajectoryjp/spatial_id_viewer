@@ -39,14 +39,12 @@ const useRegister = () => {
 
   const register = useCallback(async (waypoints: IWaypoints<WholeRouteInfo, RouteInfo, never>) => {
     const waypointsForApi = waypoints.data.map((wp) => {
-      console.log(waypoints.routeInfo);
       const cart = Cartographic.fromCartesian(wp.point);
       const { x, y } = new WebMercatorTilingScheme().positionToTileXY(
         Cartographic.fromCartesian(wp.point),
         defaultZ
       );
       const spatialID = new SpatialId(defaultZ, wp.altitude, x, y).toString();
-      console.log('spatialID', spatialID);
       // return {
       //   latitude: CesiumMath.toDegrees(cart.latitude),
       //   longitude: CesiumMath.toDegrees(cart.longitude),
@@ -90,7 +88,6 @@ const useRegister = () => {
         },
       },
     };
-    console.log(payload);
 
     // let errored = false;
     // const erroredPathIndices = new Set<number>();
@@ -176,15 +173,12 @@ const ReservedRouteCreator = () => {
   };
 
   const handleSubmit = async () => {
-    console.log(authInfo);
     setResult(null);
     if (!jsonData) {
       setError('No valid JSON data to submit.');
       return;
     }
     try {
-      console.log(jsonData);
-
       const response = await createReservedRoute({
         baseUrl: apiBaseUrl,
         authInfo: authInfo.current,
