@@ -1,11 +1,11 @@
-import { Figure, FigureRequest, SpatialId } from 'spatial-id-converter';
+import { FigureRequest } from 'spatial-id-converter';
 
 export interface DisplayDetails {
   figure: FigureRequest;
   requestType?: string[];
   period?: {
-    startTime: Date;
-    endTime: Date;
+    startTime: number;
+    endTime: number;
   };
   includeReserveArea?: boolean;
   zoomLevel?: number;

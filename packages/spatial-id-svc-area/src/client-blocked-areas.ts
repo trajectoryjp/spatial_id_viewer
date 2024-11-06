@@ -188,23 +188,28 @@ export interface SpatialFigure {
   identification: {
     ID: string;
   };
-  tube: {
-    start: {
-      latitude: number;
-      longitude: number;
-      altitude: number;
-      altitudeAttribute: string;
-    };
-    end: {
-      latitude: number;
-      longitude: number;
-      altitude: number;
-      altitudeAttribute: string;
-    };
-    radian: number;
-  };
-  polygon: any;
 }
+// export interface SpatialFigure {
+//   identification: {
+//     ID: string;
+//   };
+//   tube: {
+//     start: {
+//       latitude: number;
+//       longitude: number;
+//       altitude: number;
+//       altitudeAttribute: string;
+//     };
+//     end: {
+//       latitude: number;
+//       longitude: number;
+//       altitude: number;
+//       altitudeAttribute: string;
+//     };
+//     radian: number;
+//   };
+//   polygon: any;
+// }
 
 export interface RiskLevel {
   id: {
