@@ -27,6 +27,7 @@ import { Viewer, ViewerContainer } from '#app/components/viewer';
 import { apiBaseUrl } from '#app/constants';
 import { useAuthInfo } from '#app/stores/auth-info';
 import { dateToStringUnixTime } from '#app/utils/date-to-string-unix-time';
+import { setCustomError } from '#app/utils/set-custom-error';
 import { warnIfTokenExpired } from '#app/utils/warn-if-token-expired';
 import { RouteInfoFragment } from '#app/views/reserved-routes/create/fragments/route-info';
 import { WholeRouteInfoFragment } from '#app/views/reserved-routes/create/fragments/whole-route-info';
@@ -187,7 +188,7 @@ const ReservedRouteCreator = () => {
       setResponse(response);
       setResult(true);
     } catch (error) {
-      warnIfTokenExpired(error);
+      setCustomError(error);
       setError('Failed to register.');
       setResult(false);
     }

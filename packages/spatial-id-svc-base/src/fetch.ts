@@ -7,7 +7,9 @@ import {
   ApiCommonStatusError,
   ApiDomError,
   ApiHttpStatusError,
+  ApiNotFoundError,
   ApiResponseError,
+  ApiServiceError,
   ApiStreamError,
 } from './error';
 import { AuthInfo, HttpMethod, StreamResponse, WithCommonResponseHeader } from './types';
@@ -60,6 +62,12 @@ const doFetch = async (params: FetchJsonParams) => {
 
   if (resp.status === 401) {
     throw new ApiAuthError('failed to authenticate: token might be invalid');
+  }
+  if (resp.status === 404) {
+    throw new ApiNotFoundError('The resource could not be found.');
+  }
+  if (resp.status === 503) {
+    throw new ApiServiceError('Unable to read from server');
   }
   if (!resp.ok) {
     throw new ApiHttpStatusError('failed to fetch response: invalid http status code', resp.status);

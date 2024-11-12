@@ -22,7 +22,7 @@ import { NavigationButtons } from '#app/components/navigation';
 import { useStateRef } from '#app/hooks/state-ref';
 import { createFigure } from '#app/utils/create-figure';
 import { replaceNaN } from '#app/utils/replace-nan';
-import { warnIfTokenExpired } from '#app/utils/warn-if-token-expired';
+import { setCustomError } from '#app/utils/set-custom-error';
 
 // 最大値 (範囲が狭い)
 const MAX_Z = 22;
@@ -174,7 +174,7 @@ export const ShowModelsFragment = memo(
       }
 
       console.error(errorOutsidePromise);
-      warnIfTokenExpired(errorOutsidePromise);
+      setCustomError(errorOutsidePromise);
       setState(States.Errored);
     }, [errorOutsidePromise]);
 
@@ -191,9 +191,6 @@ export const ShowModelsFragment = memo(
         spatialID.x,
         spatialID.y
       ).toString();
-
-      // figure.tube.start.altitude = tileF1;
-      // figure.tube.end.altitude = tileF2;
 
       const displayDetails: any = {
         // figure: { ...figure, identification: { ID: newSpatialID } },
@@ -224,7 +221,7 @@ export const ShowModelsFragment = memo(
         }
       } catch (e) {
         console.error(e);
-        warnIfTokenExpired(e);
+        setCustomError(e);
         setState(States.Errored);
       } finally {
         setLoading(false);
@@ -248,13 +245,6 @@ export const ShowModelsFragment = memo(
       setTileF(replaceNaN(ev.target.valueAsNumber, 0));
     };
 
-    // const onTileF1Change = (ev: ChangeEvent<HTMLInputElement>) => {
-    //   setTileF1(replaceNaN(ev.target.valueAsNumber, 0));
-    // };
-
-    // const onTileF2Change = (ev: ChangeEvent<HTMLInputElement>) => {
-    //   setTileF2(replaceNaN(ev.target.valueAsNumber, 0));
-    // };
     const onZoomLevelChange = (ev: ChangeEvent<HTMLInputElement>) => {
       const newZoom = replaceNaN(ev.target.valueAsNumber, 16);
       if ([16, 17, 18].includes(newZoom)) {
@@ -271,7 +261,7 @@ export const ShowModelsFragment = memo(
         update((s) => (s.selectedCtrls[0] = null));
       } catch (e) {
         console.error(e);
-        warnIfTokenExpired(e);
+        setCustomError(e);
       } finally {
         setLoading(false);
       }
