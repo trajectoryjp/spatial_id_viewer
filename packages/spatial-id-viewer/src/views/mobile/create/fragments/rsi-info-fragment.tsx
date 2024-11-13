@@ -1,4 +1,5 @@
 import { Button, TextInput } from 'flowbite-react';
+import { set } from 'immer/dist/internal';
 import { ChangeEvent, memo, useId, useState } from 'react';
 import { useMount } from 'react-use';
 
@@ -8,7 +9,8 @@ import { RsiInfo } from '#app/views/mobile/create/interfaces';
 
 export const RsiInfoFragment = memo(
   ({ rsiInfo, setRsiInfo, navigatePrev, navigateNext }: RsiInfoFragmentProps<RsiInfo>) => {
-    const [RSI, setRSI] = useState<number>(0);
+    const [value, setValue] = useState('');
+    const [RSI, setRSI] = useState(-1);
 
     useMount(() => {
       if (rsiInfo !== null) {
@@ -17,7 +19,15 @@ export const RsiInfoFragment = memo(
     });
 
     const onRsiChange = (ev: ChangeEvent<HTMLInputElement>) => {
-      setRSI(ev.target.valueAsNumber);
+      let inputValue = ev.target.value;
+      inputValue = inputValue.replace(/[^-?\d]/g, '');
+
+      if ((inputValue.match(/-/g) || []).length > 1 || inputValue.indexOf('-') > 0) {
+        inputValue = inputValue.replace(/-/g, '');
+      }
+
+      setValue(inputValue);
+      setRSI(Number(inputValue));
     };
 
     const apply = () => {
@@ -36,16 +46,23 @@ export const RsiInfoFragment = memo(
       navigateNext();
     };
 
-    const RSIId = useId();
+    const ID = useId();
 
     return (
       <>
         <p>RSI情報を入力してください</p>
         <div>
           <p>
-            <label htmlFor={RSIId}>RSI</label>
+            <label htmlFor={ID}>RSI</label>
           </p>
-          <TextInput type="number" id={RSIId} required={true} value={RSI} onChange={onRsiChange} />
+
+          <TextInput
+            type="text"
+            id={ID}
+            value={value}
+            onChange={onRsiChange}
+            placeholder="Enter a positive or negative number"
+          />
         </div>
 
         <NavigationButtons>
