@@ -22,7 +22,7 @@ import { NavigationButtons } from '#app/components/navigation';
 import { useStateRef } from '#app/hooks/state-ref';
 import { createFigure } from '#app/utils/create-figure';
 import { replaceNaN } from '#app/utils/replace-nan';
-import { warnIfTokenExpired } from '#app/utils/warn-if-token-expired';
+import { setCustomError } from '#app/utils/set-custom-error';
 
 // 最大値 (範囲が狭い)
 const MAX_Z = 22;
@@ -158,8 +158,7 @@ export const ShowModelsFragment = memo(
     const [tileF, setTileF] = useState(0);
     const vbox = useViewingBoxTile();
 
-    // const [tileF1, setTileF1] = useState<number>(0);
-    // const [tileF2, setTileF2] = useState<number>(0);
+    const [zoomLevel, setZoomLevel] = useState<number>(16);
 
     useEffect(() => {
       if (isTileFAuto && vbox) {
@@ -175,7 +174,7 @@ export const ShowModelsFragment = memo(
       }
 
       console.error(errorOutsidePromise);
-      warnIfTokenExpired(errorOutsidePromise);
+      setCustomError(errorOutsidePromise);
       setState(States.Errored);
     }, [errorOutsidePromise]);
 
@@ -193,9 +192,6 @@ export const ShowModelsFragment = memo(
         spatialID.y
       ).toString();
 
-      // figure.tube.start.altitude = tileF1;
-      // figure.tube.end.altitude = tileF2;
-
       const displayDetails: any = {
         // figure: { ...figure, identification: { ID: newSpatialID } },
         figure: { identification: { ID: newSpatialID } },
@@ -207,7 +203,7 @@ export const ShowModelsFragment = memo(
           endTime: `${endTime}`,
         };
       } else if (requestType === RequestTypes.RISK_LEVEL) {
-        displayDetails['zoomLevel'] = tileF;
+        displayDetails['zoomLevel'] = zoomLevel;
       } else {
         displayDetails['requestType'] = [requestType];
       }
@@ -225,7 +221,7 @@ export const ShowModelsFragment = memo(
         }
       } catch (e) {
         console.error(e);
-        warnIfTokenExpired(e);
+        setCustomError(e);
         setState(States.Errored);
       } finally {
         setLoading(false);
@@ -249,13 +245,14 @@ export const ShowModelsFragment = memo(
       setTileF(replaceNaN(ev.target.valueAsNumber, 0));
     };
 
-    // const onTileF1Change = (ev: ChangeEvent<HTMLInputElement>) => {
-    //   setTileF1(replaceNaN(ev.target.valueAsNumber, 0));
-    // };
-
-    // const onTileF2Change = (ev: ChangeEvent<HTMLInputElement>) => {
-    //   setTileF2(replaceNaN(ev.target.valueAsNumber, 0));
-    // };
+    const onZoomLevelChange = (ev: ChangeEvent<HTMLInputElement>) => {
+      const newZoom = replaceNaN(ev.target.valueAsNumber, 16);
+      if ([16, 17, 18].includes(newZoom)) {
+        setZoomLevel(newZoom);
+      } else {
+        console.warn('Invalid zoom level. Must be 16, 17, or 18.');
+      }
+    };
 
     const onDeleteButtonClick = async () => {
       setLoading(true);
@@ -264,7 +261,7 @@ export const ShowModelsFragment = memo(
         update((s) => (s.selectedCtrls[0] = null));
       } catch (e) {
         console.error(e);
-        warnIfTokenExpired(e);
+        setCustomError(e);
       } finally {
         setLoading(false);
       }
@@ -310,26 +307,22 @@ export const ShowModelsFragment = memo(
               </Button>
             </NavigationButtons>
             {children}
-            {/* <div>
-              <p>開始高度と終了高度を入力してください</p>
-              <TextInput
-                type="number"
-                required={true}
-                value={tileF1}
-                onChange={onTileF1Change}
-                min={0}
-                max={24}
-              />
-              <TextInput
-                className="mt-2"
-                type="number"
-                required={true}
-                value={tileF2}
-                onChange={onTileF2Change}
-                min={0}
-                max={24}
-              />
-            </div> */}
+            {requestType === RequestTypes.RISK_LEVEL && (
+              <div>
+                <p>矢印を使用してズームレベルを選択します</p>
+                <p>ズームレベルは16～18の間で設定できます</p>
+                <TextInput
+                  type="number"
+                  required={true}
+                  value={zoomLevel}
+                  onChange={onZoomLevelChange}
+                  min={16}
+                  max={18}
+                  step={1}
+                />
+              </div>
+            )}
+
             <div>
               高度 (f):
               <Checkbox

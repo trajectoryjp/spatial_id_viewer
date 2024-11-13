@@ -9,7 +9,7 @@ import { CuboidCollection } from 'spatial-id-converter';
 
 import { Pages, useStoreApi } from '#app/components/area-viewer/store';
 import { NavigationButtons } from '#app/components/navigation';
-import { warnIfTokenExpired } from '#app/utils/warn-if-token-expired';
+import { setCustomError } from '#app/utils/set-custom-error';
 
 // カメラ移動時の高さ
 const CAMERA_HEIGHT = 5000;
@@ -52,7 +52,7 @@ export const ShowModelFragment = memo(({ children }: ShowModelFragmentProps) => 
     }
 
     console.error(errorOutsidePromise);
-    warnIfTokenExpired(errorOutsidePromise);
+    setCustomError(errorOutsidePromise);
     setState(States.Errored);
   }, [errorOutsidePromise]);
 
@@ -71,7 +71,7 @@ export const ShowModelFragment = memo(({ children }: ShowModelFragmentProps) => 
       await deleteModel(id);
     } catch (e) {
       console.error(e);
-      warnIfTokenExpired(e);
+      setCustomError(e);
       setState(States.Errored);
       return;
     } finally {
@@ -87,7 +87,7 @@ export const ShowModelFragment = memo(({ children }: ShowModelFragmentProps) => 
       await loadModel(id);
     } catch (e) {
       console.error(e);
-      warnIfTokenExpired(e);
+      setCustomError(e);
       setState(States.Errored);
       return;
     } finally {

@@ -69,7 +69,13 @@ const MobileStrengthViewer = (props: Props) => {
 
 const tilesetStyleFn = (tileOpacity: number) =>
   new Cesium3DTileStyle({
-    color: `hsla((1 - log(clamp(\${feature["RSI"]}, 1, 100)) / log(100)) * 2 / 3, 1, 0.6, ${tileOpacity})`,
+    color: `hsla(
+      \${feature["RSI"]} >= 0
+        ? (1 - log(clamp(\${feature["RSI"]}, 1, 100)) / log(100)) * 2 / 3
+        : (log(clamp(\${feature["RSI"]} *-1, 1, 100)) / log(100)) * 2 / 3,
+      1, 
+      0.6, 
+      ${tileOpacity}
+    )`,
   });
-
 export default WithAuthGuard(MobileStrengthViewer);
