@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { CesiumComponentRef } from 'resium';
 
 import { WithStore } from '#app/components/area-creator/store';
-import { ColorBar } from '#app/components/color-bar';
+import { RSIBar } from '#app/components/color-bar';
 import { NavigationFull, NavigationTabGroup } from '#app/components/navigation';
 import { Viewer } from '#app/components/viewer';
 import MobileStrengthViewer from '#app/views/mobile/view';
@@ -25,7 +25,7 @@ const SignalStrengthViewer = () => {
           </Tabs.Item>
         </NavigationTabGroup>
       </NavigationFull>
-      <ColorBar />
+      <RSIBar />
     </Viewer>
   );
 };
