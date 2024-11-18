@@ -238,6 +238,7 @@ export const getReservedRoutes = async function* ({
   payload,
   abortSignal,
 }: GetReservedRoutesParamsV3) {
+  let objectId = '0';
   for await (const chunk of fetchJsonStream<GetReservedRoutesResponseV3>({
     method: 'POST',
     baseUrl,
@@ -246,6 +247,11 @@ export const getReservedRoutes = async function* ({
     payload,
     abortSignal,
   })) {
+    if (chunk.result.objects[0].objectId !== '0') {
+      objectId = chunk.result.objects[0].objectId;
+      continue;
+    }
+    chunk.result.objects[0].objectId = objectId;
     yield chunk;
   }
 };
