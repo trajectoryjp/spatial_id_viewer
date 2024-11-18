@@ -28,7 +28,7 @@ import { setCustomError } from '#app/utils/set-custom-error';
 const MAX_Z = 22;
 
 // 最小値 (範囲が大きい)
-const MIN_Z = 8;
+const MIN_Z = 16;
 
 export const useViewingBoxTile = () => {
   const store = useStoreApi();
