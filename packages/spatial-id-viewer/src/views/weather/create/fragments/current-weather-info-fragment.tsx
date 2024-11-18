@@ -128,7 +128,7 @@ export const CurrentWeatherInfoFragment = memo(
         />
         <div>
           <p>
-            <label htmlFor={windSpeedId}>windSpeed</label>
+            <label htmlFor={windSpeedId}>windSpeed (knot)</label>
           </p>
           <TextInput
             type="number"
@@ -140,7 +140,7 @@ export const CurrentWeatherInfoFragment = memo(
         </div>
         <div>
           <p>
-            <label htmlFor={windDirectionId}>windDirection</label>
+            <label htmlFor={windDirectionId}>windDirection (degrees)</label>
           </p>
           <TextInput
             type="number"
@@ -152,7 +152,7 @@ export const CurrentWeatherInfoFragment = memo(
         </div>
         <div>
           <p>
-            <label htmlFor={cloudRateId}>cloudRate</label>
+            <label htmlFor={cloudRateId}>cloudRate (%)</label>
           </p>
           <TextInput
             type="number"
@@ -164,7 +164,7 @@ export const CurrentWeatherInfoFragment = memo(
         </div>
         <div>
           <p>
-            <label htmlFor={temperatureId}>temperature</label>
+            <label htmlFor={temperatureId}>temperature (ÿ)</label>
           </p>
           <TextInput
             type="number"
@@ -176,7 +176,7 @@ export const CurrentWeatherInfoFragment = memo(
         </div>
         <div>
           <p>
-            <label htmlFor={dewPointId}>dewPoint</label>
+            <label htmlFor={dewPointId}>dewPoint (°C)</label>
           </p>
           <TextInput
             type="number"
@@ -188,7 +188,7 @@ export const CurrentWeatherInfoFragment = memo(
         </div>
         <div>
           <p>
-            <label htmlFor={pressureId}>pressure</label>
+            <label htmlFor={pressureId}>pressure (hPa)</label>
           </p>
           <TextInput
             type="number"
@@ -200,7 +200,7 @@ export const CurrentWeatherInfoFragment = memo(
         </div>
         <div>
           <p>
-            <label htmlFor={precipitationId}>precipitation</label>
+            <label htmlFor={precipitationId}>precipitation (mm/h)</label>
           </p>
           <TextInput
             type="number"
@@ -212,7 +212,7 @@ export const CurrentWeatherInfoFragment = memo(
         </div>
         <div>
           <p>
-            <label htmlFor={visibilityId}>visibility</label>
+            <label htmlFor={visibilityId}>visibility (km)</label>
           </p>
           <TextInput
             type="number"

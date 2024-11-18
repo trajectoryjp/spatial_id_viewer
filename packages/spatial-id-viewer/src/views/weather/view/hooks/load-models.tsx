@@ -19,17 +19,17 @@ import { mapGetOrSet } from '#app/utils/map-get-or-set';
 
 interface WeatherInfo extends Record<string, unknown> {
   id: string;
-  spatialId: string;
-  startTime: string;
-  endTime: string;
-  windDirection: number;
-  windSpeed: number;
-  cloudRate: number;
-  temperature?: number;
-  dewPoint?: number;
-  pressure?: number;
-  precipitation: number;
-  visibility?: number;
+  spatialId?: string;
+  startTime?: string;
+  endTime?: string;
+  'windDirection (degree)': number;
+  'windSpeed (knot)': number;
+  'cloudRate (%)': number;
+  'temperature (ÿ)'?: number;
+  'dewPoint (°C)'?: number;
+  'pressure (hPa)'?: number;
+  'precipitation (mm/h)': number;
+  'visibility (km)'?: number;
   gggg?: string;
 }
 
@@ -176,7 +176,16 @@ export const createWeatherMap = (
           spatialId,
           SpatialId.fromString<WeatherInfo>(spatialId, {
             id: objectId,
-            ...definition.currentWeather,
+            startTime: definition.currentWeather.startTime,
+            endTime: definition.currentWeather.endTime,
+            'windDirection (degree)': definition.currentWeather.windDirection,
+            'windSpeed (knot)': definition.currentWeather.windSpeed,
+            'cloudRate (%)': definition.currentWeather.cloudRate,
+            'temperature (ÿ)': definition.currentWeather.temperature,
+            'dewPoint (°C)': definition.currentWeather.dewPoint,
+            'pressure (hPa)': definition.currentWeather.pressure,
+            'precipitation (mm/h)': definition.currentWeather.precipitation,
+            'visibility (km)': definition.currentWeather.visibility,
           })
         );
       } else {
@@ -184,7 +193,12 @@ export const createWeatherMap = (
           spatialId,
           SpatialId.fromString<WeatherInfo>(spatialId, {
             id: objectId,
-            ...definition.forecast,
+            startTime: definition.forecast.startTime,
+            endTime: definition.forecast.endTime,
+            'windDirection (degree)': definition.forecast.windDirection,
+            'windSpeed (knot)': definition.forecast.windSpeed,
+            'cloudRate (%)': definition.forecast.cloudRate,
+            'precipitation (mm/h)': definition.forecast.precipitation,
           })
         );
       }

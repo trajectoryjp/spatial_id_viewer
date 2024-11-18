@@ -8,10 +8,10 @@ export const WeatherForecastSettings = memo((props: SettingProps) => {
   const setType = props.setType;
   const [selectedOption, setSelectedOption] = useState('windDirection');
   const options = [
-    { label: 'Wind Direction', value: 'windDirection' },
-    { label: 'Wind Speed', value: 'windSpeed' },
-    { label: 'Cloud Rate', value: 'cloudRate' },
-    { label: 'Precipitation', value: 'precipitation' },
+    { label: 'Wind Direction', value: 'windDirection (degree)' },
+    { label: 'Wind Speed', value: 'windSpeed (knot)' },
+    { label: 'Cloud Rate', value: 'cloudRate (%)' },
+    { label: 'Precipitation', value: 'precipitation (mm/h)' },
   ];
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {

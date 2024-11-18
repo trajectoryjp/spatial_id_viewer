@@ -20,7 +20,7 @@ interface Props {
   reference: React.RefObject<CesiumComponentRef<Viewer>>;
 }
 const WeatherForecastViewer = (props: Props) => {
-  const [type, setType] = useState<string>('windDirection');
+  const [type, setType] = useState<string>('windDirection (degree)');
   const [tilesetStyle, setTilesetStyle] = useState<Cesium3DTileStyle>();
   const [tileOpacity, setTileOpacity] = useState(0.6);
 

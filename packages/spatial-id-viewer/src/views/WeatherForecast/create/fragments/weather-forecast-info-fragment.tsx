@@ -94,7 +94,7 @@ export const WeatherForecastInfoFragment = memo(
         />
         <div>
           <p>
-            <label htmlFor={windSpeedId}>windSpeed</label>
+            <label htmlFor={windSpeedId}>windSpeed (knot)</label>
           </p>
           <TextInput
             type="number"
@@ -106,7 +106,7 @@ export const WeatherForecastInfoFragment = memo(
         </div>
         <div>
           <p>
-            <label htmlFor={windDirectionId}>windDirection</label>
+            <label htmlFor={windDirectionId}>windDirection (degrees)</label>
           </p>
           <TextInput
             type="number"
@@ -118,7 +118,7 @@ export const WeatherForecastInfoFragment = memo(
         </div>
         <div>
           <p>
-            <label htmlFor={cloudRateId}>cloudRate</label>
+            <label htmlFor={cloudRateId}>cloudRate (%)</label>
           </p>
           <TextInput
             type="number"
@@ -130,7 +130,7 @@ export const WeatherForecastInfoFragment = memo(
         </div>
         <div>
           <p>
-            <label htmlFor={precipitationId}>precipitation</label>
+            <label htmlFor={precipitationId}>precipitation (mm/h)</label>
           </p>
           <TextInput
             type="number"
