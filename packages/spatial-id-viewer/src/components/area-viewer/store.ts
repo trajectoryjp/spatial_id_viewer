@@ -63,8 +63,8 @@ export class Store<Metadata extends Record<string, unknown> = Record<string, nev
   modelCtrls: ModelControllers;
   selectedCtrls: ReturnType<typeof useSelected3DTileFeature>;
   viewerCtrls: ViewerControllers;
-  startTime: number | null = null;
-  endTime: number | null = null;
+  startTime = 0;
+  endTime = 253402300799;
   airSpaceType = 0;
 
   constructor(

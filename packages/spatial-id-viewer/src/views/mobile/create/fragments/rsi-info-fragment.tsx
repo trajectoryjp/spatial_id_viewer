@@ -53,7 +53,7 @@ export const RsiInfoFragment = memo(
         <p>RSI情報を入力してください</p>
         <div>
           <p>
-            <label htmlFor={ID}>RSI</label>
+            <label htmlFor={ID}>RSI (dB)</label>
           </p>
 
           <TextInput

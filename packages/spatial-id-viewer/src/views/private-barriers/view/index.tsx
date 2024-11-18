@@ -115,7 +115,7 @@ const PrivateBarriersViewer = () => {
         featureName="建物の障壁"
         useModels={useModels}
         tilesetStyle={tilesetStyle}
-        requestType={RequestTypes.TERRAIN}
+        requestType={RequestTypes.BUILDING}
       >
         <input
           type="range"

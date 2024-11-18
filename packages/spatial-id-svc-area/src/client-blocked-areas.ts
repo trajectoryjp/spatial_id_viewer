@@ -314,6 +314,7 @@ export const getBlockedAreas = async function* ({
   payload,
   abortSignal,
 }: GetBlockedAreasParams) {
+  let objectId = '0';
   for await (const chunk of fetchJsonStream<GetBlockedAreasResponse>({
     method: 'POST',
     baseUrl,
@@ -322,6 +323,11 @@ export const getBlockedAreas = async function* ({
     payload,
     abortSignal,
   })) {
+    if (chunk.result.objects[0].objectId !== '0') {
+      objectId = chunk.result.objects[0].objectId;
+      continue;
+    }
+    chunk.result.objects[0].objectId = objectId;
     yield chunk;
   }
 };
@@ -332,6 +338,7 @@ export const getWeatherAreas = async function* ({
   payload,
   abortSignal,
 }: GetBlockedAreasParams) {
+  let objectId = '0';
   for await (const chunk of fetchJsonStream<GetBlockedAreasResponse>({
     method: 'POST',
     baseUrl,
@@ -340,6 +347,11 @@ export const getWeatherAreas = async function* ({
     payload,
     abortSignal,
   })) {
+    if (chunk.result.objects[0].objectId !== '0') {
+      objectId = chunk.result.objects[0].objectId;
+      continue;
+    }
+    chunk.result.objects[0].objectId = objectId;
     yield chunk;
   }
 };
@@ -350,6 +362,7 @@ export const getSignalAreas = async function* ({
   payload,
   abortSignal,
 }: GetBlockedAreasParams) {
+  let objectId = '0';
   for await (const chunk of fetchJsonStream<GetBlockedAreasResponse>({
     method: 'POST',
     baseUrl,
@@ -358,6 +371,11 @@ export const getSignalAreas = async function* ({
     payload,
     abortSignal,
   })) {
+    if (chunk.result.objects[0].objectId !== '0') {
+      objectId = chunk.result.objects[0].objectId;
+      continue;
+    }
+    chunk.result.objects[0].objectId = objectId;
     yield chunk;
   }
 };

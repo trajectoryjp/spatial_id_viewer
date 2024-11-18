@@ -225,7 +225,8 @@ export const getBarriers = async function* ({
   abortSignal,
 }: GetBarriersParams) {
   // for await (const chunk of fetchJsonStream<GetBarrierResponse>({
-  for await (const chunk of fetchJsonStream<GetBarrierResponseNew>({
+  let objectId = '0';
+  for await (const chunk of fetchJsonStream<GetBarriersResponseNew>({
     method: 'POST',
     baseUrl,
     path: '/uas/api/airmobility/v3/get-value',
@@ -233,6 +234,11 @@ export const getBarriers = async function* ({
     payload,
     abortSignal,
   })) {
+    if (chunk.result.objects[0].objectId !== '0') {
+      objectId = chunk.result.objects[0].objectId;
+      continue;
+    }
+    chunk.result.objects[0].objectId = objectId;
     yield chunk;
   }
 };
@@ -337,6 +343,7 @@ export const getPrivateBarriers = async function* ({
   payload,
   abortSignal,
 }: GetPrivateBarriersParams) {
+  let objectId = '0';
   for await (const chunk of fetchJsonStream<GetBarriersResponseNew>({
     method: 'POST',
     baseUrl,
@@ -345,6 +352,11 @@ export const getPrivateBarriers = async function* ({
     payload,
     abortSignal,
   })) {
+    if (chunk.result.objects[0].objectId !== '0') {
+      objectId = chunk.result.objects[0].objectId;
+      continue;
+    }
+    chunk.result.objects[0].objectId = objectId;
     yield chunk;
   }
 };

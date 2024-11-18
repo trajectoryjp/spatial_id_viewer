@@ -10,8 +10,7 @@ import {
 export const setCustomError = (error: unknown) => {
   if (error instanceof ApiAuthError) {
     toast.error('トークン期限切れ: 再度ログインしてください', { position: 'bottom-center' });
-  }
-  if (error instanceof ApiServiceError) {
+  } else if (error instanceof ApiServiceError) {
     toast.error('サーバーから読み取れません', { position: 'bottom-center' });
   } else if (error instanceof ApiNotFoundError) {
     toast.error('リソースが見つかりませんでした。', { position: 'bottom-center' });

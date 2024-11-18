@@ -19,7 +19,7 @@ import { mapGetOrSet } from '#app/utils/map-get-or-set';
 
 interface SignalInfo extends Record<string, unknown> {
   id: string;
-  RSI: number;
+  'RSI (dB)': number;
 }
 
 export const useLoadModel = (type: string) => {
@@ -99,7 +99,7 @@ export const processSignal = (area: any, type: string) => {
         spatialId,
         SpatialId.fromString<SignalInfo>(spatialId, {
           id: areaId,
-          RSI: spatialIdentification.RSI,
+          'RSI (dB)': spatialIdentification.RSI,
         })
       );
     } catch (e) {
@@ -151,7 +151,7 @@ export const createSignalMap = (
         spatialId,
         SpatialId.fromString<SignalInfo>(spatialId, {
           id: objectId,
-          RSI: definition.RSI,
+          'RSI (dB)': definition.RSI,
         })
       );
     } catch (e) {

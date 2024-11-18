@@ -77,6 +77,7 @@ export const getReservedAreas = async function* ({
   payload,
   abortSignal,
 }: GetReservedAreasParams) {
+  let objectId = '0';
   for await (const chunk of fetchJsonStream<GetReservedAreasResponse>({
     method: 'POST',
     baseUrl,
@@ -85,6 +86,11 @@ export const getReservedAreas = async function* ({
     payload,
     abortSignal,
   })) {
+    if (chunk.result.objects[0].objectId !== '0') {
+      objectId = chunk.result.objects[0].objectId;
+      continue;
+    }
+    chunk.result.objects[0].objectId = objectId;
     yield chunk;
   }
 };
