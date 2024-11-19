@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { CesiumComponentRef } from 'resium';
 
 import { WithStore } from '#app/components/area-creator/store';
-import { ColorBar } from '#app/components/color-bar';
+import { WeatherBar } from '#app/components/color-bar';
 import { NavigationFull, NavigationTabGroup } from '#app/components/navigation';
 import { Viewer } from '#app/components/viewer';
 import CurrentWeatherViewer from '#app/views/weather/view';
@@ -26,7 +26,7 @@ const WeatherViewer = () => {
           </Tabs.Item>
         </NavigationTabGroup>
       </NavigationFull>
-      <ColorBar />
+      <WeatherBar />
     </Viewer>
   );
 };
