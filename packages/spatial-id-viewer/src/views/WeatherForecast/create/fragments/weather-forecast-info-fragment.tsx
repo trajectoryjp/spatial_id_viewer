@@ -47,7 +47,8 @@ export const WeatherForecastInfoFragment = memo(
       setWindSpeed(ev.target.valueAsNumber);
     };
     const onCloudRateChange = (ev: ChangeEvent<HTMLInputElement>) => {
-      setCloudRate(ev.target.valueAsNumber);
+      const val = ev.target.valueAsNumber;
+      setCloudRate(val > 100 ? 100 : val < 0 ? 0 : val);
     };
 
     const onPrecipitationChange = (ev: ChangeEvent<HTMLInputElement>) => {
