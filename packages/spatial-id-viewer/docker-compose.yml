@@ -8,3 +8,4 @@ services:
       dockerfile: ./packages/spatial-id-viewer/Dockerfile
     ports:
       - '8080:8080'
+    platform: linux/amd64

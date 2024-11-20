@@ -18,7 +18,7 @@ declare global {
 }
 
 // API サーバのベース URL (最後の / は含めない)
-const baseUrl = 'https://trjxdev.trajectory.jp';
+const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 // 認証情報を保存する変数
 let authInfo: AuthInfo | null = null;
