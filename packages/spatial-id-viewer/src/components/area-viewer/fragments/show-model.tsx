@@ -43,6 +43,7 @@ export const ShowModelFragment = memo(({ children }: ShowModelFragmentProps) => 
   const [state, setState] = useState<States>(States.Input);
   const [loading, setLoading] = useState(false);
   const [id, setId] = useState('');
+  const [error, setError] = useState('');
 
   // Promise 外でエラー発生の場合のエラーハンドリング
   useUpdateEffect(() => {
@@ -55,6 +56,25 @@ export const ShowModelFragment = memo(({ children }: ShowModelFragmentProps) => 
     setCustomError(errorOutsidePromise);
     setState(States.Errored);
   }, [errorOutsidePromise]);
+
+  const validateInt64 = (value: string) => {
+    const int64Min = BigInt('-9223372036854775808');
+    const int64Max = BigInt('9223372036854775807');
+    const numericValue = BigInt(value);
+
+    if (numericValue < int64Min || numericValue > int64Max) {
+      return '入力がint64の範囲外です。';
+    }
+
+    return '';
+  };
+
+  const onChangeHandler = (ev: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = ev.target.value;
+    setId(inputValue);
+    const validationMessage = validateInt64(inputValue);
+    setError(validationMessage);
+  };
 
   const onCancelButtonClick = () => {
     update((s) => (s.page = Pages.SelectFunction));
@@ -122,12 +142,13 @@ export const ShowModelFragment = memo(({ children }: ShowModelFragmentProps) => 
           <p>取得する{featureIdName ?? featureName}の ID を入力してください</p>
 
           <TextInput
-            type="text"
+            type="number"
             required={true}
             value={id}
-            onChange={(ev) => setId(ev.target.value)}
+            onChange={onChangeHandler}
             disabled={loading}
           />
+          {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
 
           <NavigationButtons>
             {isFunctionSelectable && (
@@ -135,7 +156,7 @@ export const ShowModelFragment = memo(({ children }: ShowModelFragmentProps) => 
                 戻る
               </Button>
             )}
-            <Button onClick={onLoadButtonClick} disabled={loading}>
+            <Button onClick={onLoadButtonClick} disabled={loading || !!error}>
               取得する
             </Button>
           </NavigationButtons>
