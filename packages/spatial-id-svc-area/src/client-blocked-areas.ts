@@ -323,8 +323,8 @@ export const getBlockedAreas = async function* ({
     payload,
     abortSignal,
   })) {
-    if (chunk.result.objects[0].objectId !== '0') {
-      objectId = chunk.result.objects[0].objectId;
+    if (chunk?.result?.objects?.[0]?.objectId !== '0') {
+      objectId = chunk?.result?.objects[0]?.objectId;
       continue;
     }
     chunk.result.objects[0].objectId = objectId;
@@ -347,8 +347,8 @@ export const getWeatherAreas = async function* ({
     payload,
     abortSignal,
   })) {
-    if (chunk.result.objects[0].objectId !== '0') {
-      objectId = chunk.result.objects[0].objectId;
+    if (chunk?.result?.objects?.[0]?.objectId !== '0') {
+      objectId = chunk?.result?.objects[0]?.objectId;
       continue;
     }
     chunk.result.objects[0].objectId = objectId;
@@ -371,8 +371,8 @@ export const getSignalAreas = async function* ({
     payload,
     abortSignal,
   })) {
-    if (chunk.result.objects[0].objectId !== '0') {
-      objectId = chunk.result.objects[0].objectId;
+    if (chunk?.result?.objects?.[0]?.objectId !== '0') {
+      objectId = chunk?.result?.objects[0]?.objectId;
       continue;
     }
     chunk.result.objects[0].objectId = objectId;

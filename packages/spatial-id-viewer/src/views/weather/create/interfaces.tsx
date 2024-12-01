@@ -1,6 +1,6 @@
 export interface CurrentWeatherInfo {
-  startTime: Date | null;
-  endTime: Date | null;
+  startTime: Date;
+  endTime: Date;
   windDirection: number;
   windSpeed: number;
   cloudRate: number;
@@ -13,8 +13,8 @@ export interface CurrentWeatherInfo {
 }
 
 export interface WeatherForecastInfo {
-  startTime: Date | null;
-  endTime: Date | null;
+  startTime: Date;
+  endTime: Date;
   windDirection: number;
   windSpeed: number;
   cloudRate: number;
