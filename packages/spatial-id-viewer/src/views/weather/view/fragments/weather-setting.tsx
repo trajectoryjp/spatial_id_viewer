@@ -11,7 +11,7 @@ export const WeatherSettings = memo((props: SettingProps) => {
     { label: 'Wind Direction', value: 'windDirection (degree)' },
     { label: 'Wind Speed', value: 'windSpeed (knot)' },
     { label: 'Cloud Rate', value: 'cloudRate (%)' },
-    { label: 'Temperature', value: 'temperature (ÿ)' },
+    { label: 'Temperature', value: 'temperature (°C)' },
     { label: 'Dew Point', value: 'dewPoint (°C)' },
     { label: 'Pressure', value: 'pressure (hPa)' },
     { label: 'Precipitation', value: 'precipitation (mm/h)' },

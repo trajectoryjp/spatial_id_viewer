@@ -5,6 +5,7 @@ import { useMount } from 'react-use';
 import { NavigationButtons } from '#app/components/navigation';
 import { CurrentWeatherInfoFragmentProps } from '#app/components/tab-area-creator';
 import { TogglableDateTimeInputField } from '#app/components/togglable-date-time-input-field';
+import { replaceNaN } from '#app/utils/replace-nan';
 import { CurrentWeatherInfo } from '#app/views/weather/create/interfaces';
 
 export const CurrentWeatherInfoFragment = memo(
@@ -14,8 +15,8 @@ export const CurrentWeatherInfoFragment = memo(
     navigatePrev,
     navigateNext,
   }: CurrentWeatherInfoFragmentProps<CurrentWeatherInfo>) => {
-    const [startTime, setStartTime] = useState<Date | null>(null);
-    const [endTime, setEndTime] = useState<Date | null>(null);
+    const [startTime, setStartTime] = useState<Date>(null);
+    const [endTime, setEndTime] = useState<Date>(null);
     const [windDirection, setWindDirection] = useState<number>(0);
     const [windSpeed, setWindSpeed] = useState<number>(0);
     const [cloudRate, setCloudRate] = useState<number>(0);
@@ -25,7 +26,6 @@ export const CurrentWeatherInfoFragment = memo(
     const [precipitation, setPrecipitation] = useState<number>(0);
     const [visibility, setVisibility] = useState<number>(0);
     const [gggg, setgggg] = useState<string>('');
-
     useMount(() => {
       if (currentWeatherInfo !== null) {
         setStartTime(currentWeatherInfo.startTime);
@@ -51,29 +51,29 @@ export const CurrentWeatherInfoFragment = memo(
     };
 
     const onWindDirectionChange = (ev: ChangeEvent<HTMLInputElement>) => {
-      setWindDirection(ev.target.valueAsNumber);
+      setWindDirection(replaceNaN(ev.target.valueAsNumber, 0));
     };
     const onWindSpeedChange = (ev: ChangeEvent<HTMLInputElement>) => {
-      setWindSpeed(ev.target.valueAsNumber);
+      setWindSpeed(replaceNaN(ev.target.valueAsNumber, 0));
     };
     const onCloudRateChange = (ev: ChangeEvent<HTMLInputElement>) => {
-      const val = ev.target.valueAsNumber;
+      const val = replaceNaN(ev.target.valueAsNumber, 0);
       setCloudRate(val > 100 ? 100 : val < 0 ? 0 : val);
     };
     const onTemperatureChange = (ev: ChangeEvent<HTMLInputElement>) => {
-      setTemperature(ev.target.valueAsNumber);
+      setTemperature(replaceNaN(ev.target.valueAsNumber, 0));
     };
     const onDewPointChange = (ev: ChangeEvent<HTMLInputElement>) => {
-      setDewPoint(ev.target.valueAsNumber);
+      setDewPoint(replaceNaN(ev.target.valueAsNumber, 0));
     };
     const onPressureChange = (ev: ChangeEvent<HTMLInputElement>) => {
-      setPressure(ev.target.valueAsNumber);
+      setPressure(replaceNaN(ev.target.valueAsNumber, 0));
     };
     const onPrecipitationChange = (ev: ChangeEvent<HTMLInputElement>) => {
-      setPrecipitation(ev.target.valueAsNumber);
+      setPrecipitation(replaceNaN(ev.target.valueAsNumber, 0));
     };
     const onVisibilityChange = (ev: ChangeEvent<HTMLInputElement>) => {
-      setVisibility(ev.target.valueAsNumber);
+      setVisibility(replaceNaN(ev.target.valueAsNumber, 0));
     };
     const onggggChange = (ev: ChangeEvent<HTMLInputElement>) => {
       setgggg(ev.target.value);
@@ -81,8 +81,8 @@ export const CurrentWeatherInfoFragment = memo(
 
     const apply = () => {
       setCurrentWeatherInfo({
-        startTime,
-        endTime,
+        startTime: startTime == null ? new Date('0001-01-01T00:00:00Z') : startTime,
+        endTime: endTime == null ? new Date('9999-12-31T23:59:59.999999999Z') : endTime,
         windDirection,
         windSpeed,
         cloudRate,
@@ -141,7 +141,7 @@ export const CurrentWeatherInfoFragment = memo(
         </div>
         <div>
           <p>
-            <label htmlFor={windDirectionId}>windDirection (degrees)</label>
+            <label htmlFor={windDirectionId}>windDirection (degree)</label>
           </p>
           <TextInput
             type="number"
@@ -165,7 +165,7 @@ export const CurrentWeatherInfoFragment = memo(
         </div>
         <div>
           <p>
-            <label htmlFor={temperatureId}>temperature (ÿ)</label>
+            <label htmlFor={temperatureId}>temperature (°C)</label>
           </p>
           <TextInput
             type="number"
