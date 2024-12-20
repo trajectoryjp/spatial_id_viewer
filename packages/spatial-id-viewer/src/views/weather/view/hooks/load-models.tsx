@@ -25,7 +25,7 @@ interface WeatherInfo extends Record<string, unknown> {
   'windDirection (degree)': number;
   'windSpeed (knot)': number;
   'cloudRate (%)': number;
-  'temperature (ÿ)'?: number;
+  'temperature (°C)'?: number;
   'dewPoint (°C)'?: number;
   'pressure (hPa)'?: number;
   'precipitation (mm/h)': number;
@@ -181,7 +181,7 @@ export const createWeatherMap = (
             'windDirection (degree)': definition.currentWeather.windDirection,
             'windSpeed (knot)': definition.currentWeather.windSpeed,
             'cloudRate (%)': definition.currentWeather.cloudRate,
-            'temperature (ÿ)': definition.currentWeather.temperature,
+            'temperature (°C)': definition.currentWeather.temperature,
             'dewPoint (°C)': definition.currentWeather.dewPoint,
             'pressure (hPa)': definition.currentWeather.pressure,
             'precipitation (mm/h)': definition.currentWeather.precipitation,
