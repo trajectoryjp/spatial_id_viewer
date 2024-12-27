@@ -21,7 +21,7 @@ export const Menu = () => {
   return (
     <>
       <MenuCategory>
-        <MenuTitle>地形障壁</MenuTitle>
+        <MenuTitle>地形バリア</MenuTitle>
         <MenuEntry>
           <Link href="/barriers">表示・削除</Link>
         </MenuEntry>
@@ -31,7 +31,7 @@ export const Menu = () => {
       </MenuCategory>
 
       <MenuCategory>
-        <MenuTitle>建物の障壁</MenuTitle>
+        <MenuTitle>建物バリア</MenuTitle>
         <MenuEntry>
           <Link href="/building-barriers">表示・削除</Link>
         </MenuEntry>
@@ -58,9 +58,6 @@ export const Menu = () => {
         <MenuEntry>
           <Link href="/blocked-areas/create">生成</Link>
         </MenuEntry>
-        {/* <MenuEntry>
-          <Link href="/blocked-areas/auto-create">位置情報による自動生成</Link>
-        </MenuEntry> */}
       </MenuCategory>
 
       <MenuCategory>
@@ -84,7 +81,7 @@ export const Menu = () => {
       </MenuCategory>
 
       <MenuCategory>
-        <MenuTitle>飛行許可空域</MenuTitle>
+        <MenuTitle>飛行計画エリア</MenuTitle>
         <MenuEntry>
           <Link href="/permitted-airspace">表示</Link>
         </MenuEntry>
@@ -98,7 +95,7 @@ export const Menu = () => {
       </MenuCategory> */}
 
       <MenuCategory>
-        <MenuTitle>天気</MenuTitle>
+        <MenuTitle>気象</MenuTitle>
         <MenuEntry>
           <Link href="/weather">表示・削除</Link>
         </MenuEntry>
