@@ -33,9 +33,9 @@ export enum RequestTypes {
 }
 
 export enum RestrictionTypes {
-  TYPE_FREE = 'TYPE_FREE',
-  TYPE_P = 'TYPE_P',
-  TYPE_R = 'TYPE_R',
-  TYPE_K = 'TYPE_K',
-  TYPE_N = 'TYPE_N',
+  TYPE_FREE = '制限なし',
+  TYPE_P = 'フライトなし',
+  TYPE_R = '飛行制限',
+  TYPE_K = '訓練',
+  TYPE_N = '一時的な制限',
 }
