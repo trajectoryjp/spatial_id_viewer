@@ -52,6 +52,7 @@ const MobileStrengthViewer = (props: Props) => {
         tilesetStyle={tilesetStyle}
         requestType={RequestTypes.MICROWAVE}
         reference={props.reference}
+        signalType="mobile"
       >
         <input
           type="range"
