@@ -139,7 +139,18 @@ export const createSignalMap = (
   type: string
 ) => {
   const objectId = object.objectId;
-  const spatialIds = mapGetOrSet(map, objectId, () => new Map<string, SpatialId<SignalInfo>>());
+  let objectIdOrCode;
+  // const objectIdorCode = object.;
+  if (type == 'mobile') {
+    objectIdOrCode = object.microwave.mobile.plmnId.mobileNetworkCode;
+  } else {
+    objectIdOrCode = objectId;
+  }
+  const spatialIds = mapGetOrSet(
+    map,
+    objectIdOrCode,
+    () => new Map<string, SpatialId<SignalInfo>>()
+  );
 
   for (const definition of object.microwave[type].voxelValues) {
     const spatialId = definition.id.ID;

@@ -67,13 +67,9 @@ const WifiStrengthViewer = (props: Props) => {
   );
 };
 
-// const tilesetStyleFn = (tileOpacity: number) =>
-//   new Cesium3DTileStyle({
-//     color: `hsla((1 - log(clamp(\${feature["RSI"]}, 1, 100)) / log(100)) * 2 / 3, 1, 0.6, ${tileOpacity})`,
-//   });
 const tilesetStyleFn = (tileOpacity: number) =>
   new Cesium3DTileStyle({
-    color: `hsla((1-(clamp(\${feature["RSI"]} + 120, 1, 60) / 60)) * 2 / 3,
+    color: `hsla((1-(clamp(\${feature["RSI (dB)"]} + 120, 1, 60) / 60)) * 2 / 3,
       1,
       0.6,
       ${tileOpacity}

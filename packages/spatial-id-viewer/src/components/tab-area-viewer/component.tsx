@@ -1,9 +1,11 @@
 import { Cesium3DTileStyle, Viewer as CesiumViewer } from 'cesium';
-import { memo, ReactNode, useEffect } from 'react';
+import { memo, ReactNode, useEffect, useState } from 'react';
 import { useLatest, useMount, useShallowCompareEffect } from 'react-use';
 import { CesiumComponentRef } from 'resium';
 import { useStore } from 'zustand';
 import { shallow } from 'zustand/shallow';
+
+import { RequestTypes } from 'spatial-id-svc-common';
 
 import { SelectFunctionFragment } from '#app/components/area-viewer/fragments/select-function';
 import { ShowModelFragment } from '#app/components/area-viewer/fragments/show-model';
@@ -18,8 +20,9 @@ import {
   useStoreApi,
   WithStore,
 } from '#app/components/area-viewer/store';
-import { Navigation, NavigationWR } from '#app/components/navigation';
+import { NavigationWR } from '#app/components/navigation';
 import { CuboidCollectionModel } from '#app/components/viewer/cuboid-collection-model';
+import { CarrierCodes } from '#app/views/mobile/view/interfaces';
 
 export interface AreaViewerProps<Metadata extends Record<string, unknown> = Record<string, never>> {
   /** オブジェクトの種類名 */
@@ -33,6 +36,7 @@ export interface AreaViewerProps<Metadata extends Record<string, unknown> = Reco
 
   reference: React.RefObject<CesiumComponentRef<CesiumViewer>>;
   requestType: string;
+  signalType?: string;
   children?: ReactNode;
 }
 
@@ -126,6 +130,49 @@ const TabAreaViewerLayout = <Metadata extends Record<string, unknown> = Record<s
       unselectModel();
     }
   }, [models]);
+
+  const [selectedValue, setSelectedValue] = useState(CarrierCodes.EMOBILE1);
+
+  const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedValue(event.target.value as CarrierCodes);
+  };
+  if (props.requestType === RequestTypes.MICROWAVE && props.signalType == 'mobile') {
+    return (
+      <>
+        {[...models.entries()]
+          .filter(([carier]) => !selectedValue || carier === selectedValue)
+          .map(([carier, model]) => (
+            <CuboidCollectionModel key={carier} data={model} style={props.tilesetStyle} />
+          ))}
+        <NavigationWR>
+          {page === Pages.ShowModels && (
+            <div>
+              <label htmlFor="dropdown">キャリアコードを選択: </label>
+              <select
+                id="dropdown"
+                value={selectedValue}
+                onChange={handleChange}
+                style={{ color: '#3b3a3a' }}
+              >
+                {Object.values(CarrierCodes).map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {page === Pages.SelectFunction && <SelectFunctionFragment />}
+          {page === Pages.ShowModel && <ShowModelFragment>{props.children}</ShowModelFragment>}
+          {page === Pages.ShowModels && (
+            <ShowModelsFragment requestType={props.requestType}>
+              {props.children}
+            </ShowModelsFragment>
+          )}
+        </NavigationWR>
+      </>
+    );
+  }
 
   return (
     <>
