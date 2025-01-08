@@ -110,37 +110,16 @@ export const processSignal = (area: any, type: string) => {
   return spatialIds;
 };
 
-// interface GetAreas {
-//   objects: SpatialDefinition[];
-// }
-
-// export const processSignals = async (
-//   result: AsyncGenerator<StreamResponse<GetAreas>>,
-//   type: string
-// ) => {
-//   const areas = new Map<string, Map<string, SpatialId<SignalInfo>>>();
-//   for await (const resp of result) {
-//     for (const area of resp.result.objects) {
-//       const areaId = area.objectId;
-//       const spatialIds = mapGetOrSet(areas, areaId, () => new Map<string, SpatialId<SignalInfo>>());
-
-//       for (const [spatialId, spatialIdObj] of processSignal(area, type).entries()) {
-//         spatialIds.set(spatialId, spatialIdObj);
-//       }
-//     }
-//   }
-
-//   return areas;
-// };
-
 export const createSignalMap = (
   map: Map<string, Map<string, SpatialId<SignalInfo>>>,
   object: any,
   type: string
 ) => {
+  if (object.microwave[type] == undefined) {
+    return map;
+  }
   const objectId = object.objectId;
   let objectIdOrCode;
-  // const objectIdorCode = object.;
   if (type == 'mobile') {
     objectIdOrCode = object.microwave.mobile.plmnId.mobileNetworkCode;
   } else {

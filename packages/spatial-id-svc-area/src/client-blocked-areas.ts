@@ -4,7 +4,6 @@ import {
   CommonResponseHeader,
   fetchJson,
   fetchJsonStream,
-  StreamStatus,
 } from 'spatial-id-svc-base';
 import { SpatialIdentification } from 'spatial-id-svc-common';
 
@@ -115,8 +114,8 @@ export interface MicrowaveDefinition {
 export interface MobileDefinition {
   reference: string;
   plmnId: {
-    mobileCountryCode: string;
-    mobileNetworkCode: string;
+    mobileCountryCode?: string;
+    mobileNetworkCode?: string;
   };
   voxelValues: SignalVoxel[];
 }
@@ -363,6 +362,7 @@ export const getSignalAreas = async function* ({
   abortSignal,
 }: GetBlockedAreasParams) {
   let objectId = '0';
+  let networkCode = '0';
   for await (const chunk of fetchJsonStream<GetBlockedAreasResponse>({
     method: 'POST',
     baseUrl,
@@ -371,11 +371,30 @@ export const getSignalAreas = async function* ({
     payload,
     abortSignal,
   })) {
-    if (chunk?.result?.objects?.[0]?.objectId !== '0') {
-      objectId = chunk?.result?.objects[0]?.objectId;
-      continue;
+    const objects = chunk?.result?.objects;
+
+    if (objects?.[0]) {
+      const object = objects[0];
+      const { objectId: currentObjectId, microwave } = object;
+
+      if (currentObjectId !== '0') {
+        objectId = currentObjectId;
+        if (microwave?.mobile) {
+          networkCode = microwave.mobile.plmnId?.mobileNetworkCode ?? networkCode;
+        }
+        continue;
+      }
+
+      object.objectId = objectId;
+
+      if (microwave?.mobile) {
+        microwave.mobile.plmnId = {
+          ...(microwave.mobile.plmnId || {}),
+          mobileNetworkCode: networkCode,
+        };
+      }
     }
-    chunk.result.objects[0].objectId = objectId;
+
     yield chunk;
   }
 };
@@ -398,16 +417,6 @@ export const getRiskLevels = async function* ({
   }
 };
 
-// export const getWeather = async ({ baseUrl, authInfo, id, abortSignal }: GetBlockedAreaParams) => {
-//   return await fetchJson<GetBlockedAreaResponse>({
-//     method: 'POST',
-//     baseUrl,
-//     path: '/uas/api/airmobility/v3/get-object',
-//     authInfo,
-//     payload: { objectId: id },
-//     abortSignal,
-//   });
-// };
 export const getWeather = async function* ({
   baseUrl,
   authInfo,
