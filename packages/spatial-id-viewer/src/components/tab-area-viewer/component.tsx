@@ -140,7 +140,12 @@ const TabAreaViewerLayout = <Metadata extends Record<string, unknown> = Record<s
     return (
       <>
         {[...models.entries()]
-          .filter(([carier]) => !selectedValue || carier === selectedValue)
+          .filter(([carier]) => {
+            if (page === Pages.ShowModels) {
+              return !selectedValue || carier === selectedValue;
+            }
+            return true;
+          })
           .map(([carier, model]) => (
             <CuboidCollectionModel key={carier} data={model} style={props.tilesetStyle} />
           ))}

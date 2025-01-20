@@ -21,7 +21,8 @@ interface SignalInfo extends Record<string, unknown> {
   id: string;
   'RSI (dB)': number;
 }
-
+const SINGLE = 'single_model';
+const MULTIPLE = 'multiple_models';
 export const useLoadModel = (type: string) => {
   const authInfo = useLatest(useAuthInfo((s) => s.authInfo));
 
@@ -30,7 +31,6 @@ export const useLoadModel = (type: string) => {
       getSignalArea({ baseUrl: apiBaseUrl, authInfo: authInfo.current, id }),
       type
     );
-
     const barrier = spatialIds.get(id);
     if (barrier === undefined) {
       throw new Error(`barrier ${id} not found in response`);
@@ -113,14 +113,15 @@ export const processSignal = (area: any, type: string) => {
 export const createSignalMap = (
   map: Map<string, Map<string, SpatialId<SignalInfo>>>,
   object: any,
-  type: string
+  type: string,
+  modelQuantity: string = MULTIPLE
 ) => {
   if (object.microwave[type] == undefined) {
     return map;
   }
   const objectId = object.objectId;
   let objectIdOrCode;
-  if (type == 'mobile') {
+  if (modelQuantity == MULTIPLE && type == 'mobile') {
     objectIdOrCode = object.microwave.mobile.plmnId.mobileNetworkCode;
   } else {
     objectIdOrCode = objectId;
@@ -159,7 +160,7 @@ export const processSignals = async (
   let barriers = new Map<string, Map<string, SpatialId<SignalInfo>>>();
   for await (const resp of result) {
     if ('objectId' in resp.result) {
-      barriers = createSignalMap(barriers, resp.result, type);
+      barriers = createSignalMap(barriers, resp.result, type, SINGLE);
     } else if ('objects' in resp.result) {
       for (const object of resp.result.objects) {
         barriers = createSignalMap(barriers, object, type);
