@@ -15,12 +15,13 @@ import { useInterval, useUpdateEffect } from 'react-use';
 import { useStore } from 'zustand';
 
 import { Figure, getGeoidHeight, SpatialId } from 'spatial-id-converter';
+import { fetchCarrierCodes } from 'spatial-id-svc-area';
 import { RequestTypes } from 'spatial-id-svc-common';
 
 import { Pages, useStoreApi } from '#app/components/area-viewer/store';
 import { NavigationButtons } from '#app/components/navigation';
+import { carrierUrl } from '#app/constants';
 import { useStateRef } from '#app/hooks/state-ref';
-import { createFigure } from '#app/utils/create-figure';
 import { replaceNaN } from '#app/utils/replace-nan';
 import { setCustomError } from '#app/utils/set-custom-error';
 
@@ -56,34 +57,12 @@ export const useViewingBoxTile = () => {
     const point1 = Cartographic.fromRadians(rect.west, rect.north);
     const point2 = Cartographic.fromRadians(rect.east, rect.south);
 
-    // const tubeStart = {
-    //   latitude: point1.latitude,
-    //   longitude: point1.longitude,
-    //   altitude: altitude,
-    //   altitudeAttribute: 'ALTITUDE_ATTRIBUTE_ELLIPSOID', // Adjust as needed
-    // };
-
-    // const tubeEnd = {
-    //   latitude: point2.latitude,
-    //   longitude: point2.longitude,
-    //   altitude: altitude,
-    //   altitudeAttribute: 'ALTITUDE_ATTRIBUTE_ELLIPSOID', // Adjust as needed
-    // };
-
     // point1 と point2 の両方が収まる最小のタイルを取得
     for (let tileZ = MAX_Z; tileZ >= MIN_Z; tileZ--) {
       const tile1 = new WebMercatorTilingScheme().positionToTileXY(point1, tileZ);
       const tile2 = new WebMercatorTilingScheme().positionToTileXY(point2, tileZ);
       if (tile1 && tile2 && tile1.equals(tile2)) {
         const tileF = Math.floor((2 ** tileZ * altitude) / 2 ** 25);
-
-        // const Fig = createFigure(
-        //   new SpatialId(tileZ, tileF, tile1.x, tile1.y),
-        //   tubeStart,
-        //   tubeEnd,
-        //   0,
-        //   {}
-        // );
         const Fig = {
           identification: { ID: new SpatialId(tileZ, tileF, tile1.x, tile1.y) },
         };
@@ -94,14 +73,6 @@ export const useViewingBoxTile = () => {
     // 最大の範囲 (MIN_Z) にも収まらなかったときは、中央の座標を含む tileZ: MIN_Z の範囲を取得
     const tileCenter = new WebMercatorTilingScheme().positionToTileXY(pointCenter, MIN_Z);
     const tileF = Math.floor((2 ** MIN_Z * altitude) / 2 ** 25);
-
-    // const Figure = createFigure(
-    //   new SpatialId(MIN_Z, tileF, tileCenter.x, tileCenter.y),
-    //   tubeStart,
-    //   tubeEnd,
-    //   0,
-    //   {}
-    // );
     const Figure = {
       identification: { ID: new SpatialId(MIN_Z, tileF, tileCenter.x, tileCenter.y) },
     };
@@ -122,6 +93,7 @@ export const useViewingBoxTile = () => {
 
 export interface ShowModelsFragmentProps {
   requestType?: string;
+  signalType?: string;
   stream?: boolean;
   children?: ReactNode;
 }
@@ -134,7 +106,7 @@ type States = (typeof States)[keyof typeof States];
 
 /** 複数取得系 API を呼び、モデルを 1 つ表示させる画面 */
 export const ShowModelsFragment = memo(
-  ({ requestType, stream, children }: ShowModelsFragmentProps) => {
+  ({ requestType, signalType, stream, children }: ShowModelsFragmentProps) => {
     const store = useStoreApi();
     const startTime = useStore(store, (s) => s.startTime);
     const endTime = useStore(store, (s) => s.endTime);
@@ -218,6 +190,10 @@ export const ShowModelsFragment = memo(
           await loadModelsRisk(displayDetails);
         } else {
           await loadModels(displayDetails);
+          if (requestType === RequestTypes.MICROWAVE && signalType == 'mobile') {
+            const data = await fetchCarrierCodes(carrierUrl);
+            update((s) => (s.carrierCodes = data));
+          }
         }
       } catch (e) {
         console.error(e);

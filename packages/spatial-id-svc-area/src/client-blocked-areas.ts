@@ -354,6 +354,28 @@ export const getWeatherAreas = async function* ({
     yield chunk;
   }
 };
+export const fetchCarrierCodes = async (carrierUrl: string) => {
+  try {
+    const res = await fetch(`${carrierUrl}/uas/api/airmobility/v3/carriers`);
+    return await res.json();
+  } catch (error) {
+    throw new ApiResponseError('error while fetching ');
+  }
+};
+
+export const writeCarrierCodes = async (carrierUrl: string, codes: { [k: string]: string }) => {
+  try {
+    await fetch(`${carrierUrl}/uas/api/airmobility/v3/carriers`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(codes),
+    });
+  } catch (error) {
+    throw new ApiResponseError('failed to save the new codes');
+  }
+};
 
 export const getSignalAreas = async function* ({
   baseUrl,

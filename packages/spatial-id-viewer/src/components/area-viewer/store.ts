@@ -66,6 +66,7 @@ export class Store<Metadata extends Record<string, unknown> = Record<string, nev
   startTime = 0;
   endTime = 253402300799;
   airSpaceType = 0;
+  carrierCodes: Record<string, string> = {};
 
   constructor(
     private readonly set: StoreApi<Store>['setState'],
