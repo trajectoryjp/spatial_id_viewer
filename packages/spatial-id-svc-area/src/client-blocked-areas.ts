@@ -385,6 +385,7 @@ export const getSignalAreas = async function* ({
 }: GetBlockedAreasParams) {
   let objectId = '0';
   let networkCode = '0';
+  let countryCode = '0';
   for await (const chunk of fetchJsonStream<GetBlockedAreasResponse>({
     method: 'POST',
     baseUrl,
@@ -403,6 +404,7 @@ export const getSignalAreas = async function* ({
         objectId = currentObjectId;
         if (microwave?.mobile) {
           networkCode = microwave.mobile.plmnId?.mobileNetworkCode ?? networkCode;
+          countryCode = microwave.mobile.plmnId?.mobileCountryCode ?? countryCode;
         }
         continue;
       }
@@ -412,6 +414,7 @@ export const getSignalAreas = async function* ({
       if (microwave?.mobile) {
         microwave.mobile.plmnId = {
           ...(microwave.mobile.plmnId || {}),
+          mobileCountryCode: countryCode,
           mobileNetworkCode: networkCode,
         };
       }
