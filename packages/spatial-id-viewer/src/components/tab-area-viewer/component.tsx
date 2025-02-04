@@ -23,8 +23,7 @@ import {
 } from '#app/components/area-viewer/store';
 import { NavigationWR } from '#app/components/navigation';
 import { CuboidCollectionModel } from '#app/components/viewer/cuboid-collection-model';
-import { carrierUrl } from '#app/constants';
-import { CarrierCodes } from '#app/views/mobile/view/interfaces';
+import { mobileCarrierCodes } from '#app/constants';
 
 export interface AreaViewerProps<Metadata extends Record<string, unknown> = Record<string, never>> {
   /** オブジェクトの種類名 */
@@ -51,8 +50,6 @@ const TabAreaViewerLayout = <Metadata extends Record<string, unknown> = Record<s
   const page = useStore(store, (s) => s.page);
   const pageAirSpace = useStore(store, (s) => s.pageAirSpace);
   const models = useStore(store, (s) => s.models);
-  const carrierCodess = useStore(store, (s) => s.carrierCodes);
-
   const modelStore = useStore(
     store,
     (s) => ({
@@ -136,22 +133,6 @@ const TabAreaViewerLayout = <Metadata extends Record<string, unknown> = Record<s
 
   const [selectedValue, setSelectedValue] = useState<string>('44000');
 
-  const updateCarriersIfMicrowave = useCallback(async () => {
-    if (props.requestType === RequestTypes.MICROWAVE && props.signalType == 'mobile') {
-      let data: Record<string, string>;
-      try {
-        data = await fetchCarrierCodes(carrierUrl);
-      } catch (error) {
-        data = {};
-      }
-      update((s) => (s.carrierCodes = data));
-    }
-  }, [props.requestType]);
-
-  useEffect(() => {
-    updateCarriersIfMicrowave();
-  }, [props.requestType]);
-
   const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedValue(event.target.value);
   };
@@ -176,13 +157,20 @@ const TabAreaViewerLayout = <Metadata extends Record<string, unknown> = Record<s
                 id="dropdown"
                 value={selectedValue}
                 onChange={handleChange}
-                style={{ color: '#3b3a3a' }}
+                style={{
+                  color: '#3b3a3a',
+                  maxWidth: '350px',
+                  whiteSpace: 'normal',
+                  wordWrap: 'break-word',
+                }}
               >
-                {Object.entries(carrierCodess).map(([key, value]) => (
-                  <option key={`${key}-${value} `} value={value}>
-                    {value}
-                  </option>
-                ))}
+                {JSON.parse(mobileCarrierCodes).map(
+                  ({ name, code }: { name: string; code: string }) => (
+                    <option key={`${name}-${code}`} value={code}>
+                      {`${name}(${code})`}
+                    </option>
+                  )
+                )}
               </select>
             </div>
           )}

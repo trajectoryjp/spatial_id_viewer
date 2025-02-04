@@ -9,15 +9,13 @@ import {
   GetSignalRequest,
   SpatialDefinition,
   SpatialDefinitions,
-  writeCarrierCodes,
 } from 'spatial-id-svc-area';
 import { StreamResponse } from 'spatial-id-svc-base';
 
 import { DisplayDetails } from '#app/components/area-viewer/interface';
-import { apiBaseUrl, carrierUrl } from '#app/constants';
+import { apiBaseUrl } from '#app/constants';
 import { useAuthInfo } from '#app/stores/auth-info';
 import { mapGetOrSet } from '#app/utils/map-get-or-set';
-import { setCustomError } from '#app/utils/set-custom-error';
 
 interface SignalInfo extends Record<string, unknown> {
   id: string;
@@ -60,15 +58,6 @@ export const useLoadModels = (type: string) => {
       }),
       type
     );
-
-    if (type == 'mobile') {
-      const newCodes = Object.fromEntries([...areas.keys()].map((key) => [key, key]));
-      try {
-        writeCarrierCodes(carrierUrl, newCodes);
-      } catch (error) {
-        setCustomError(error);
-      }
-    }
 
     const models = new Map(
       (await Promise.all(
