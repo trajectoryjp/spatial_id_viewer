@@ -5,7 +5,6 @@ import { CesiumComponentRef } from 'resium';
 import { useStore } from 'zustand';
 import { shallow } from 'zustand/shallow';
 
-import { fetchCarrierCodes } from 'spatial-id-svc-area';
 import { RequestTypes } from 'spatial-id-svc-common';
 
 import { SelectFunctionFragment } from '#app/components/area-viewer/fragments/select-function';

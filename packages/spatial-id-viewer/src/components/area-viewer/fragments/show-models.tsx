@@ -15,12 +15,10 @@ import { useInterval, useUpdateEffect } from 'react-use';
 import { useStore } from 'zustand';
 
 import { Figure, getGeoidHeight, SpatialId } from 'spatial-id-converter';
-import { fetchCarrierCodes } from 'spatial-id-svc-area';
 import { RequestTypes } from 'spatial-id-svc-common';
 
 import { Pages, useStoreApi } from '#app/components/area-viewer/store';
 import { NavigationButtons } from '#app/components/navigation';
-import { carrierUrl } from '#app/constants';
 import { useStateRef } from '#app/hooks/state-ref';
 import { replaceNaN } from '#app/utils/replace-nan';
 import { setCustomError } from '#app/utils/set-custom-error';
