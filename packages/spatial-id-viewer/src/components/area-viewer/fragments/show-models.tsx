@@ -190,10 +190,6 @@ export const ShowModelsFragment = memo(
           await loadModelsRisk(displayDetails);
         } else {
           await loadModels(displayDetails);
-          if (requestType === RequestTypes.MICROWAVE && signalType == 'mobile') {
-            const data = await fetchCarrierCodes(carrierUrl);
-            update((s) => (s.carrierCodes = data));
-          }
         }
       } catch (e) {
         console.error(e);
