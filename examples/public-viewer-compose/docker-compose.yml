@@ -5,7 +5,7 @@ services:
     image: trajectoryjp/ouranos_gex_spatial_id_playground:api-latest
     container_name: spid-viewer-backend
     ports:
-      - '3080:3000'
+      - '3000:3000'
     environment:
       - APP_ENV=dev
       - APP_PORT=3000
