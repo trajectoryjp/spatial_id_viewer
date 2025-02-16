@@ -1,5 +1,5 @@
 import riskBar from '#app/assets/risk-bar.svg';
-import rsiBar from '#app/assets/RSI-bar.svg';
+import rsiBar from '#app/assets/RSI-200.svg';
 import weatherBar from '#app/assets/Weather-bar.svg';
 
 export const ColorBar = () => {
