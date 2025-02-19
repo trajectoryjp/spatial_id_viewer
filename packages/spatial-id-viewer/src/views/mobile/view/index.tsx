@@ -7,6 +7,7 @@ import { RequestTypes } from 'spatial-id-svc-common';
 
 import { createUseModels } from '#app/components/area-viewer';
 import { WithAuthGuard } from '#app/components/auth-guard';
+import MultiRangeSlider from '#app/components/slider/multiRangeSlider';
 import { TabAreaViewer } from '#app/components/tab-area-viewer';
 import {
   useDeleteModel,
@@ -24,8 +25,8 @@ const MobileStrengthViewer = (props: Props) => {
   const [tilesetStyle, setTilesetStyle] = useState<Cesium3DTileStyle>();
   const [tileOpacity, setTileOpacity] = useState(0.6);
 
-  const [minValue, setMinValue] = useState(-200);
-  const [maxValue, setMaxValue] = useState(-60);
+  const [minValueTileSet, setMinValueTileSet] = useState(-200);
+  const [maxValueTileSet, setMaxValueTileSet] = useState(-60);
 
   const loadModel = useLoadModel('mobile');
   const loadModels = useLoadModels('mobile');
@@ -36,8 +37,8 @@ const MobileStrengthViewer = (props: Props) => {
   };
 
   useEffect(() => {
-    setTilesetStyle(tilesetStyleFn(tileOpacity, minValue, maxValue));
-  }, [tileOpacity, minValue, maxValue]);
+    setTilesetStyle(tilesetStyleFn(tileOpacity, minValueTileSet, maxValueTileSet));
+  }, [tileOpacity, minValueTileSet, maxValueTileSet]);
 
   const useModels = createUseModels({
     loadModel,
@@ -45,17 +46,17 @@ const MobileStrengthViewer = (props: Props) => {
     deleteModel,
   });
 
-  const changeMin = (e: ChangeEvent<HTMLInputElement>) => {
-    const value = Math.min(Number(e.target.valueAsNumber), maxValue - 1);
-    setMinValue(value);
-    props.setMin(value);
-  };
+  // const changeMin = (e: ChangeEvent<HTMLInputElement>) => {
+  //   const value = Math.min(Number(e.target.valueAsNumber), maxValue - 1);
+  //   setMinValue(value);
+  //   props.setMin(value);
+  // };
 
-  const changeMax = (e: ChangeEvent<HTMLInputElement>) => {
-    const value = Math.min(Math.max(Number(e.target.valueAsNumber), minValue + 1));
-    setMaxValue(value);
-    props.setMax(value);
-  };
+  // const changeMax = (e: ChangeEvent<HTMLInputElement>) => {
+  //   const value = Math.min(Math.max(Number(e.target.valueAsNumber), minValue + 1));
+  //   setMaxValue(value);
+  //   props.setMax(value);
+  // };
 
   return (
     <>
@@ -80,35 +81,17 @@ const MobileStrengthViewer = (props: Props) => {
           step={0.01}
         />
 
-        <div className="flex flex-col items-center space-y-4">
+        <div className="flex flex-col items-center space-y-2">
           <h2 className="text-lg font-semibold">RSI範囲を調整する</h2>
 
-          <div className="flex items-center gap-x-4">
-            <span className="w-20">Min: {minValue}</span>
-            <input
-              type="range"
-              min="-200"
-              max="-60"
-              step="1"
-              value={minValue}
-              onChange={changeMin}
-              className="h-1 accent-blue-500 w-100"
-              style={{ zIndex: minValue < maxValue - 1 ? '2' : '1' }}
-            />
-          </div>
-
-          <div className="flex items-center gap-x-4">
-            <span className="w-20">Max: {maxValue}</span>
-            <input
-              type="range"
-              min="-200"
-              max="-60"
-              step="1"
-              value={maxValue}
-              onChange={changeMax}
-              className="h-1 accent-red-500"
-            />
-          </div>
+          <MultiRangeSlider
+            min={-200}
+            max={-60}
+            setMax={props.setMax}
+            setMin={props.setMin}
+            setMaxValueTileSet={setMaxValueTileSet}
+            setMinValueTileSet={setMinValueTileSet}
+          />
         </div>
       </TabAreaViewer>
     </>
