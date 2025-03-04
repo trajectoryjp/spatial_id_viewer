@@ -11,6 +11,7 @@ import {
   ApiResponseError,
   ApiServiceError,
   ApiStreamError,
+  InvalidRequestError,
 } from './error';
 import { AuthInfo, HttpMethod, StreamResponse, WithCommonResponseHeader } from './types';
 
@@ -68,6 +69,14 @@ const doFetch = async (params: FetchJsonParams) => {
   }
   if (resp.status === 503) {
     throw new ApiServiceError('Unable to read from server');
+  }
+
+  if (resp.status === 400) {
+    const res = await resp.json();
+    if (res.code != undefined && res.code == 3) {
+      throw new InvalidRequestError('invalid arguments provided');
+    }
+    throw new ApiHttpStatusError('failed to fetch response: invalid http status code', resp.status);
   }
   if (!resp.ok) {
     throw new ApiHttpStatusError('failed to fetch response: invalid http status code', resp.status);
