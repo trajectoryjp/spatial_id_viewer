@@ -37,6 +37,14 @@ export class ApiServiceError extends ApiHttpStatusError {
   }
 }
 
+export class InvalidRequestError extends ApiHttpStatusError {
+  name = 'BadRequestError';
+
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, 400, options);
+  }
+}
+
 export class ApiNotFoundError extends ApiHttpStatusError {
   name = 'ApiNotFoundError';
 

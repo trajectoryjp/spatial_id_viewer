@@ -61,7 +61,7 @@ export const InputTileZFragment = memo(() => {
 
   return (
     <>
-      <p>タイルサイズを選択してください</p>
+      <p>矢印キーでタイルのサイズを選択してください</p>
       <TextInput
         type="number"
         required={true}
@@ -69,6 +69,7 @@ export const InputTileZFragment = memo(() => {
         onChange={onTileZChange}
         min={12}
         max={22}
+        onKeyDown={(e) => e.preventDefault()}
       />
       <NavigationButtons>
         <Button color="dark" onClick={onBackButtonClick}>

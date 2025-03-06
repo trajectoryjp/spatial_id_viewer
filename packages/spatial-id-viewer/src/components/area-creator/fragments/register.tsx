@@ -51,7 +51,11 @@ export const RegisterFragment = memo(() => {
         <p key={'p4'}>登録された ID: {response.objectId}</p>
       )}
       <NavigationButtons>
-        <Button onClick={onResetButtonClick}>さらに登録する</Button>
+        <Button onClick={onResetButtonClick}>
+          {response && response.error && errorMessages[response.error]
+            ? 'はじめからやり直す'
+            : 'さらに登録する'}
+        </Button>
       </NavigationButtons>
     </>
   ) : (
