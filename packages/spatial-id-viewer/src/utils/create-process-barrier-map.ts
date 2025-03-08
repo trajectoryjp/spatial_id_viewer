@@ -1,5 +1,5 @@
 import { SpatialId } from 'spatial-id-converter';
-import { StreamResponse } from 'spatial-id-svc-base';
+import { ResponseTooLargeError, StreamResponse } from 'spatial-id-svc-base';
 import { SpatialDefinition, SpatialDefinitions } from 'spatial-id-svc-route';
 
 import { mapGetOrSet } from '#app/utils/map-get-or-set';
@@ -52,6 +52,14 @@ export const processBarriers = async (
     } else if ('objects' in resp.result) {
       for (const object of resp.result.objects) {
         barriers = createBarrierMap(barriers, object, type);
+      }
+    }
+
+    let totalObjects = 0;
+    for (const innerMap of barriers.values()) {
+      totalObjects += innerMap.size;
+      if (totalObjects > 250000) {
+        throw new ResponseTooLargeError();
       }
     }
   }

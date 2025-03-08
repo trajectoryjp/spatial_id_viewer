@@ -7,6 +7,7 @@ import {
   ApiNotFoundError,
   ApiServiceError,
   InvalidRequestError,
+  ResponseTooLargeError,
 } from 'spatial-id-svc-base';
 
 export const setCustomError = (error: unknown) => {
@@ -20,6 +21,10 @@ export const setCustomError = (error: unknown) => {
     toast.error('IDの形式が不正です。半角数字で入力してください。', { position: 'bottom-center' });
   } else if (error instanceof ApiHttpStatusError) {
     toast.error('不明なエラーが発生しました。しばらくしてからもう一度お試しください。', {
+      position: 'bottom-center',
+    });
+  } else if (error instanceof ResponseTooLargeError) {
+    toast.error('レスポンスが大きいため、処理を中断しました」などのメッセージを表示す', {
       position: 'bottom-center',
     });
   } else if (error instanceof ApiDomError) {

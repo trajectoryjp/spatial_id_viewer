@@ -79,3 +79,7 @@ export class ApiCommonStatusError extends ApiResponseError {
     super(message, options);
   }
 }
+
+export class ResponseTooLargeError extends Error {
+  name = 'ResponseTooLarge';
+}

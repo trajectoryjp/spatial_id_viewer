@@ -10,7 +10,7 @@ import {
   SpatialDefinition,
   SpatialDefinitions,
 } from 'spatial-id-svc-area';
-import { StreamResponse } from 'spatial-id-svc-base';
+import { ResponseTooLargeError, StreamResponse } from 'spatial-id-svc-base';
 
 import { DisplayDetails } from '#app/components/area-viewer/interface';
 import { apiBaseUrl } from '#app/constants';
@@ -221,6 +221,14 @@ export const processWeathers = async (
     } else if ('objects' in resp.result) {
       for (const object of resp.result.objects) {
         barriers = createWeatherMap(barriers, object, type);
+      }
+    }
+    let totalObjects = 0;
+    for (const innerMap of barriers.values()) {
+      totalObjects += innerMap.size;
+      console.log('totalObjects', totalObjects);
+      if (totalObjects > 250000) {
+        throw new ResponseTooLargeError();
       }
     }
   }
