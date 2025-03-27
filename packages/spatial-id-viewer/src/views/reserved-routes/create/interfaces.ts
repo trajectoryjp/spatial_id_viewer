@@ -9,3 +9,10 @@ export interface WholeRouteInfo {
   uavSize: number;
   reservationMethod: ReservationMethod;
 }
+
+export interface RouteInfo {
+  reservationId: string;
+  startTime: Date | null;
+  endTime: Date | null;
+  occupation: string;
+}

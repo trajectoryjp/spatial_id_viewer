@@ -16,17 +16,23 @@ import {
 } from 'resium';
 import { useStore } from 'zustand';
 
+import { successResponse } from 'spatial-id-svc-route';
+
 import { IAreas } from '#app/components/area-creator';
 import { AreaAdditionalInfoProxyFragment } from '#app/components/area-creator/fragments/area-additional-info-proxy';
 import { InputTileFFragment } from '#app/components/area-creator/fragments/input-tile-f';
 import { InputTileZFragment } from '#app/components/area-creator/fragments/input-tile-z';
+import { OwnerAddressProxy } from '#app/components/area-creator/fragments/owner-address-proxy';
 import { RegisterFragment } from '#app/components/area-creator/fragments/register';
+import { RestrictionInfoProxy } from '#app/components/area-creator/fragments/restriction-info-proxy';
 import { SelectAddOrSendFragment } from '#app/components/area-creator/fragments/select-add-or-send';
 import { SelectPointFragment } from '#app/components/area-creator/fragments/select-point';
 import { WholeAreaInfoProxyFragment } from '#app/components/area-creator/fragments/whole-area-info-proxy';
 import {
   AreaAdditionalInfoFragmentProps,
+  OwnerAddressFragmentProps,
   Pages,
+  RestrictionTypeFragmentProps,
   useStoreApi,
   WholeAreaInfoFragmentProps,
   WithStore,
@@ -35,25 +41,45 @@ import { Navigation } from '#app/components/navigation';
 import { Viewer, ViewerContainer } from '#app/components/viewer';
 import { CuboidCollectionModel } from '#app/components/viewer/cuboid-collection-model';
 
-export interface AreaCreatorProps<WholeAreaInfo = any, AreaAdditionalInfo = any> {
+export interface AreaCreatorProps<
+  WholeAreaInfo = any,
+  AreaAdditionalInfo = any,
+  RestrictionAdditionalInfo = any,
+  OwnerAddressInfo = any
+> {
   /** 単一エリアの追加の情報入力が必要な場合、その入力欄コンポーネント */
   areaAdditionalInfoFragment?: React.FC<AreaAdditionalInfoFragmentProps<AreaAdditionalInfo>>;
   /** エリア全体で追加の情報入力が必要な場合、その入力欄コンポーネント */
   wholeAreaInfoFragment?: React.FC<WholeAreaInfoFragmentProps<WholeAreaInfo>>;
+
+  restrictiontypeFragment?: React.FC<RestrictionTypeFragmentProps<RestrictionAdditionalInfo>>;
+
+  ownerAddressFragment?: React.FC<OwnerAddressFragmentProps<OwnerAddressInfo>>;
   /** エリア登録を行う関数 */
-  register: (areas: IAreas<WholeAreaInfo, AreaAdditionalInfo>) => Promise<void>;
+  register: (
+    areas: IAreas<WholeAreaInfo, AreaAdditionalInfo, RestrictionAdditionalInfo, OwnerAddressInfo>
+  ) => Promise<void | successResponse>;
 }
 
 // main
 const AreaCreatorLayout = <
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-constraint
   WholeAreaInfo extends any = any,
-  AreaAdditionalInfo = any
+  AreaAdditionalInfo = any,
+  RestrictionAdditionalInfo = any,
+  OwnerAddressInfo = any
 >({
   areaAdditionalInfoFragment,
   wholeAreaInfoFragment,
+  restrictiontypeFragment,
+  ownerAddressFragment,
   register,
-}: AreaCreatorProps<WholeAreaInfo, AreaAdditionalInfo>) => {
+}: AreaCreatorProps<
+  WholeAreaInfo,
+  AreaAdditionalInfo,
+  RestrictionAdditionalInfo,
+  OwnerAddressInfo
+>) => {
   const viewerRef = useRef<CesiumComponentRef<CesiumViewer>>();
 
   const store = useStoreApi();
@@ -70,6 +96,15 @@ const AreaCreatorLayout = <
     () => void update((s) => (s.areaAdditionalInfoFragment = areaAdditionalInfoFragment)),
     [areaAdditionalInfoFragment]
   );
+  useEffect(
+    () => void update((s) => (s.restrictionInfoFragment = restrictiontypeFragment)),
+    [restrictiontypeFragment]
+  );
+  useEffect(
+    () => void update((s) => (s.ownerAddressFragment = ownerAddressFragment)),
+    [ownerAddressFragment]
+  );
+
   useEffect(() => void update((s) => (s.registerFunc = register)), [register]);
 
   const onMapClick = useCallback<(typeof ScreenSpaceEvent)['defaultProps']['action']>((ev) => {
@@ -137,7 +172,9 @@ const AreaCreatorLayout = <
         {page === Pages.InputTileF && <InputTileFFragment />}
         {page === Pages.InputAreaSpecificInfo && <AreaAdditionalInfoProxyFragment />}
         {page === Pages.SelectAddOrSend && <SelectAddOrSendFragment />}
+        {page === Pages.InputRestrictionInfo && <RestrictionInfoProxy />}
         {page === Pages.InputWholeAreaInfo && <WholeAreaInfoProxyFragment />}
+        {page === Pages.OwnerAddressInfo && <OwnerAddressProxy />}
         {page === Pages.Register && <RegisterFragment />}
       </Navigation>
     </ViewerContainer>

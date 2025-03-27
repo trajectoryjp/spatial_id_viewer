@@ -1,49 +1,48 @@
 import { Cesium3DTileStyle } from 'cesium';
 import Head from 'next/head';
-import { useCallback } from 'react';
+import { ChangeEvent, useCallback, useEffect, useState } from 'react';
 import { useLatest } from 'react-use';
-import { useStore } from 'zustand';
 
 import { CuboidCollection, SpatialId } from 'spatial-id-converter';
 import {
   deleteReservedArea,
+  GetAreaRequest,
+  GetEmergencyAreas,
   getReservedArea,
   getReservedAreas,
   GetReservedAreasResponse,
   ReservedArea,
 } from 'spatial-id-svc-area';
 import { StreamResponse } from 'spatial-id-svc-base';
+import { RequestTypes } from 'spatial-id-svc-common';
 
 import { AreaViewer, createUseModels } from '#app/components/area-viewer';
+import { DisplayDetails } from '#app/components/area-viewer/interface';
 import { WithAuthGuard } from '#app/components/auth-guard';
 import { apiBaseUrl } from '#app/constants';
 import { useAuthInfo } from '#app/stores/auth-info';
-import { dateToStringUnixTime } from '#app/utils/date-to-string-unix-time';
+import { processBarriers } from '#app/utils/create-process-barrier-map';
 import { mapGetOrSet } from '#app/utils/map-get-or-set';
-import { AdditionalSettings } from '#app/views/reserved-areas/view/additonal-settings';
-import { useStoreApi, WithStore } from '#app/views/reserved-areas/view/store';
+import { WithStore } from '#app/views/reserved-areas/view/store';
 
 /** 表示するメタデータ */
 interface ReservedAreaInfo extends Record<string, unknown> {
   id: string;
   spatialId: string;
-  startTime: string;
-  endTime: string;
 }
 
-const processReservedArea = (id: string, area: ReservedArea) => {
+const processReservedArea = (area: any, type: string) => {
+  const areaId = area.objectId;
   const spatialIds = new Map<string, SpatialId<ReservedAreaInfo>>();
-  for (const spatialIdent of area.spatialIdentifications) {
-    const spatialId = spatialIdent.ID;
+  for (const spatialIdent of area[type].voxelValues) {
+    const spatialId = spatialIdent.id.ID;
 
     try {
       spatialIds.set(
         spatialId,
         SpatialId.fromString<ReservedAreaInfo>(spatialId, {
-          id,
+          id: areaId,
           spatialId,
-          startTime: area.startTime,
-          endTime: area.endTime,
         })
       );
     } catch (e) {
@@ -54,19 +53,20 @@ const processReservedArea = (id: string, area: ReservedArea) => {
 };
 
 const processReservedAreas = async (
-  result: AsyncGenerator<StreamResponse<GetReservedAreasResponse>>
+  result: AsyncGenerator<StreamResponse<GetEmergencyAreas>>,
+  type: string
 ) => {
   const areas = new Map<string, Map<string, SpatialId<ReservedAreaInfo>>>();
   for await (const resp of result) {
-    for (const area of resp.result.reservedAreas) {
-      const areaId = area.id;
+    for (const area of resp.result.objects) {
+      const areaId = area.objectId;
       const spatialIds = mapGetOrSet(
         areas,
         areaId,
         () => new Map<string, SpatialId<ReservedAreaInfo>>()
       );
 
-      for (const [key, value] of processReservedArea(areaId, area).entries()) {
+      for (const [key, value] of processReservedArea(area, type).entries()) {
         spatialIds.set(key, value);
       }
     }
@@ -80,13 +80,17 @@ const useLoadModel = () => {
   const authInfo = useLatest(useAuthInfo((s) => s.authInfo));
 
   const loadModel = useCallback(async (id: string) => {
-    const spatialIds = processReservedArea(
-      id,
-      (await getReservedArea({ baseUrl: apiBaseUrl, authInfo: authInfo.current, id })).reservedArea
+    const spatialIds = await processBarriers(
+      getReservedArea({ baseUrl: apiBaseUrl, authInfo: authInfo.current, id }),
+      'emergencyArea'
     );
 
+    const barrier = spatialIds.get(id);
+    if (barrier === undefined) {
+      throw new Error(`barrier ${id} not found in response`);
+    }
     const model = new CuboidCollection<ReservedAreaInfo>(
-      await Promise.all([...spatialIds.values()].map((s) => s.createCuboid()))
+      await Promise.all([...barrier.values()].map((s) => s.createCuboid()))
     );
 
     return model;
@@ -97,28 +101,20 @@ const useLoadModel = () => {
 
 /** 空間 ID で範囲を指定してモデルを複数取得する関数を返す React Hook */
 const useLoadModels = () => {
-  const store = useStoreApi();
-  const startTime = useLatest(useStore(store, (s) => s.startTime));
-  const endTime = useLatest(useStore(store, (s) => s.endTime));
+  // const store = useStoreApi();
+  // const startTime = useLatest(useStore(store, (s) => s.startTime));
+  // const endTime = useLatest(useStore(store, (s) => s.endTime));
 
   const authInfo = useLatest(useAuthInfo((s) => s.authInfo));
 
-  const loadModels = useCallback(async (bbox: SpatialId) => {
+  const loadModels = useCallback(async (displayDetails: DisplayDetails) => {
     const areas = await processReservedAreas(
       getReservedAreas({
         baseUrl: apiBaseUrl,
         authInfo: authInfo.current,
-        payload: {
-          boundary: [
-            {
-              ID: bbox.toString(),
-            },
-          ],
-          hasSpatialId: true,
-          startTime: dateToStringUnixTime(startTime.current),
-          endTime: dateToStringUnixTime(endTime.current),
-        },
-      })
+        payload: displayDetails as GetAreaRequest,
+      }),
+      'emergencyArea'
     );
 
     const models = new Map(
@@ -152,6 +148,8 @@ const useDeleteModel = () => {
 };
 
 const ReservedAreasViewer = () => {
+  const [tilesetStyle, setTilesetStyle] = useState<Cesium3DTileStyle>();
+  const [tileOpacity, setTileOpacity] = useState(0.6);
   const loadModel = useLoadModel();
   const loadModels = useLoadModels();
   const deleteModel = useDeleteModel();
@@ -161,21 +159,41 @@ const ReservedAreasViewer = () => {
     loadModels,
     deleteModel,
   });
+  const onTileOpacityChange = (ev: ChangeEvent<HTMLInputElement>) => {
+    setTileOpacity(ev.target.valueAsNumber);
+  };
+  useEffect(() => {
+    setTilesetStyle(tilesetStyleFn(tileOpacity));
+  }, [tileOpacity]);
 
   return (
     <>
       <Head>
-        <title>飛行エリア予約表示・削除</title>
+        <title>緊急エリア予約の表示・削除</title>
       </Head>
-      <AreaViewer featureName="飛行エリア予約" useModels={useModels} tilesetStyle={tilesetStyle}>
-        <AdditionalSettings />
+      <AreaViewer
+        featureName="緊急エリアの予約"
+        useModels={useModels}
+        tilesetStyle={tilesetStyle}
+        requestType={RequestTypes.EMERGENCY_AREA}
+      >
+        <input
+          type="range"
+          className="h-1 accent-yellow-500"
+          value={tileOpacity}
+          onChange={onTileOpacityChange}
+          min={0}
+          max={1}
+          step={0.01}
+        />
       </AreaViewer>
     </>
   );
 };
 
-const tilesetStyle = new Cesium3DTileStyle({
-  color: 'rgba(0, 255, 255, 0.6)',
-});
+const tilesetStyleFn = (tileOpacity: number) =>
+  new Cesium3DTileStyle({
+    color: `hsla(0.5, 1, 0.5, ${tileOpacity})`,
+  });
 
 export default WithAuthGuard(WithStore(ReservedAreasViewer));

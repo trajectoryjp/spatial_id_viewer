@@ -5,6 +5,7 @@ import { useLatest } from 'react-use';
 import { CuboidCollection, SpatialId } from 'spatial-id-converter';
 
 import { IStore, ModelControllers } from '#app/components/area-viewer';
+import { DisplayDetails } from '#app/components/area-viewer/interface';
 
 export interface CreateUseModelsProps<
   Metadata extends Record<string, unknown> = Record<string, never>
@@ -12,7 +13,7 @@ export interface CreateUseModelsProps<
   /** ID を指定してモデルを 1 つ返す */
   loadModel?: (id: string) => Promise<CuboidCollection<Metadata>>;
   /** 空間 ID で範囲を取得してモデルを複数返す */
-  loadModels?: (bbox: SpatialId) => Promise<Map<string, CuboidCollection<Metadata>>>;
+  loadModels?: (bbox: DisplayDetails) => Promise<Map<string, CuboidCollection<Metadata>>>;
   /** ID を指定してモデルを削除する */
   deleteModel?: (id: string) => Promise<void>;
   /** モデルがアンロードされる際のフック */
@@ -41,7 +42,7 @@ export const createUseModels = <Metadata extends Record<string, unknown> = Recor
       );
     }, []);
 
-    const loadModels = useCallback(async (bbox: SpatialId) => {
+    const loadModels = useCallback(async (bbox: DisplayDetails) => {
       const models: Map<string, CuboidCollection<any>> = await loadModelsImpl.current(bbox);
       replaceModels.current(() => castDraft(models));
     }, []);

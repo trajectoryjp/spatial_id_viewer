@@ -2,7 +2,7 @@ import Head from 'next/head';
 import { useCallback } from 'react';
 import { useLatest } from 'react-use';
 
-import { Barrier, BarrierDefinition, createBarrier } from 'spatial-id-svc-route';
+import { BarrierDefinitionVoxel, BarrierNew, createBarrier } from 'spatial-id-svc-route';
 
 import { AreaCreator, IAreas } from '#app/components/area-creator';
 import { WithAuthGuard } from '#app/components/auth-guard';
@@ -17,23 +17,29 @@ const useRegister = () => {
 
   const register = useCallback(async (areas: IAreas<never, AreaAdditionalInfo>) => {
     const payload = {
-      id: '0',
-      barrierDefinitions: areas.data
-        .map((area) =>
-          area.spatialIds.map((spatialId) => {
-            return {
-              spatialIdentification: {
-                ID: spatialId,
-              },
-              risk: area.additionalInfo.risk,
-            } as BarrierDefinition;
-          })
-        )
-        .flat(),
-      status: 'STATUS_DONE',
-    } as Barrier;
+      overwrite: false,
+      object: {
+        terrain: {
+          reference: 'WGS84',
+          voxelValues: areas.data
+            .map((area) =>
+              area.spatialIds.map((spatialId) => {
+                return {
+                  id: {
+                    ID: spatialId,
+                  },
+                  vacant: true,
+                  // risk: area.additionalInfo.risk,
+                } as BarrierDefinitionVoxel;
+              })
+            )
+            .flat(),
+        },
+      },
+      // status: 'STATUS_DONE',
+    } as BarrierNew;
 
-    await createBarrier({ baseUrl: apiBaseUrl, authInfo: authInfo.current, payload });
+    return await createBarrier({ baseUrl: apiBaseUrl, authInfo: authInfo.current, payload });
   }, []);
 
   return register;
@@ -49,7 +55,8 @@ const PrivateBarrierCreator = () => {
       </Head>
       <AreaCreator<never, AreaAdditionalInfo>
         register={register}
-        areaAdditionalInfoFragment={AreaAdditionalInfoFragment}
+        // areaAdditionalInfoFragment={AreaAdditionalInfoFragment}
+        areaAdditionalInfoFragment={null}
       />
     </>
   );

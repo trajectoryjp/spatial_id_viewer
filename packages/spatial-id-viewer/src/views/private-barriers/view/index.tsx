@@ -1,84 +1,39 @@
 import { Cesium3DTileStyle } from 'cesium';
 import Head from 'next/head';
-import { useCallback } from 'react';
+import { ChangeEvent, useCallback, useEffect, useState } from 'react';
 import { useLatest } from 'react-use';
 
 import { CuboidCollection, SpatialId } from 'spatial-id-converter';
-import { StreamResponse } from 'spatial-id-svc-base';
+import { RequestTypes } from 'spatial-id-svc-common';
 import {
-  BarrierDefinition,
-  deletePrivateBarrier,
+  deleteBarrier,
+  GetBuildingBarriersRequest,
   getPrivateBarrier,
   getPrivateBarriers,
 } from 'spatial-id-svc-route';
 
 import { AreaViewer, createUseModels } from '#app/components/area-viewer';
+import { DisplayDetails } from '#app/components/area-viewer/interface';
 import { WithAuthGuard } from '#app/components/auth-guard';
 import { apiBaseUrl } from '#app/constants';
 import { useAuthInfo } from '#app/stores/auth-info';
-import { mapGetOrSet } from '#app/utils/map-get-or-set';
-
-/** 表示するメタデータ */
-interface PrivateBarrierInfo extends Record<string, unknown> {
-  id: string;
-  spatialId: string;
-  risk: number;
-}
-
-/** レスポンス中のプライベートバリア共通部分 */
-interface IPrivateBarrier {
-  id: string;
-  barrierDefinitions: BarrierDefinition[];
-}
-
-const processPrivateBarriers = async (result: AsyncGenerator<StreamResponse<IPrivateBarrier>>) => {
-  const barriers = new Map<string, Map<string, SpatialId<PrivateBarrierInfo>>>();
-  for await (const resp of result) {
-    const barrierId = resp.result.id;
-    const spatialIds = mapGetOrSet(
-      barriers,
-      barrierId,
-      () => new Map<string, SpatialId<PrivateBarrierInfo>>()
-    );
-
-    for (const barrierDefinition of resp.result.barrierDefinitions) {
-      const spatialId = barrierDefinition.spatialIdentification.ID;
-      if (spatialIds.has(spatialId)) {
-        continue;
-      }
-
-      try {
-        spatialIds.set(
-          spatialId,
-          SpatialId.fromString<PrivateBarrierInfo>(spatialId, {
-            id: barrierId,
-            spatialId,
-            risk: barrierDefinition.risk,
-          })
-        );
-      } catch (e) {
-        console.error(e);
-      }
-    }
-  }
-
-  return barriers;
-};
+import { Info, processBarriers } from '#app/utils/create-process-barrier-map';
 
 /** ID を指定してモデルを 1 件取得する関数を返す React Hook */
 const useLoadModel = () => {
   const authInfo = useLatest(useAuthInfo((s) => s.authInfo));
 
   const loadModel = useCallback(async (id: string) => {
-    const barriers = await processPrivateBarriers(
-      getPrivateBarrier({ baseUrl: apiBaseUrl, authInfo: authInfo.current, id })
+    const barriers = await processBarriers(
+      getPrivateBarrier({ baseUrl: apiBaseUrl, authInfo: authInfo.current, id }),
+      'building'
     );
     const barrier = barriers.get(id);
     if (barrier === undefined) {
       throw new Error(`private barrier ${id} not found in response`);
     }
 
-    const model = new CuboidCollection<PrivateBarrierInfo>(
+    const model = new CuboidCollection<Info>(
       await Promise.all([...barrier.values()].map((b) => b.createCuboid()))
     );
     return model;
@@ -91,18 +46,14 @@ const useLoadModel = () => {
 const useLoadModels = () => {
   const authInfo = useLatest(useAuthInfo((s) => s.authInfo));
 
-  const loadModels = useCallback(async (bbox: SpatialId) => {
-    const barriers = await processPrivateBarriers(
+  const loadModels = useCallback(async (displayDetails: DisplayDetails) => {
+    const barriers = await processBarriers(
       getPrivateBarriers({
         baseUrl: apiBaseUrl,
         authInfo: authInfo.current,
-        payload: {
-          boundary: {
-            ID: bbox.toString(),
-          },
-          hasSpatialId: true,
-        },
-      })
+        payload: displayDetails as GetBuildingBarriersRequest,
+      }),
+      'building'
     );
 
     const models = new Map(
@@ -115,7 +66,7 @@ const useLoadModels = () => {
               await Promise.all([...spatialIds.values()].map((s) => s.createCuboid()))
             ),
           ])
-      )) as [string, CuboidCollection<PrivateBarrierInfo>][]
+      )) as [string, CuboidCollection<Info>][]
     );
 
     return models;
@@ -129,13 +80,15 @@ const useDeleteModel = () => {
   const authInfo = useLatest(useAuthInfo((s) => s.authInfo));
 
   const deleteModel = useCallback(async (id: string) => {
-    await deletePrivateBarrier({ baseUrl: apiBaseUrl, authInfo: authInfo.current, id });
+    await deleteBarrier({ baseUrl: apiBaseUrl, authInfo: authInfo.current, id });
   }, []);
 
   return deleteModel;
 };
 
 const PrivateBarriersViewer = () => {
+  const [tilesetStyle, setTilesetStyle] = useState<Cesium3DTileStyle>();
+  const [tileOpacity, setTileOpacity] = useState(0.6);
   const loadModel = useLoadModel();
   const loadModels = useLoadModels();
   const deleteModel = useDeleteModel();
@@ -146,22 +99,41 @@ const PrivateBarriersViewer = () => {
     deleteModel,
   });
 
+  const onTileOpacityChange = (ev: ChangeEvent<HTMLInputElement>) => {
+    setTileOpacity(ev.target.valueAsNumber);
+  };
+  useEffect(() => {
+    setTilesetStyle(tilesetStyleFn(tileOpacity));
+  }, [tileOpacity]);
+
   return (
     <>
       <Head>
-        <title>プライベートバリア表示・削除</title>
+        <title>建物の障壁表示・削除</title>
       </Head>
       <AreaViewer
-        featureName="プライベートバリア"
+        featureName="建物の障壁"
         useModels={useModels}
         tilesetStyle={tilesetStyle}
-      />
+        requestType={RequestTypes.BUILDING}
+      >
+        <input
+          type="range"
+          className="h-1 accent-yellow-500"
+          value={tileOpacity}
+          onChange={onTileOpacityChange}
+          min={0}
+          max={1}
+          step={0.01}
+        />
+      </AreaViewer>
     </>
   );
 };
 
-const tilesetStyle = new Cesium3DTileStyle({
-  color: 'hsla(clamp(${feature["risk"]}, 0, 10) / 10, 1, 0.85, 0.95)',
-});
+const tilesetStyleFn = (tileOpacity: number) =>
+  new Cesium3DTileStyle({
+    color: `hsla(0.5, 1, 0.5, ${tileOpacity})`,
+  });
 
 export default WithAuthGuard(PrivateBarriersViewer);

@@ -1,0 +1,1 @@
+export { TabAreaViewer } from './component';

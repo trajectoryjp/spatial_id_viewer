@@ -1,4 +1,5 @@
 import {
+  ApiResponseError,
   AuthInfo,
   CommonResponseHeader,
   fetchJson,
@@ -6,6 +7,15 @@ import {
   StreamStatus,
 } from 'spatial-id-svc-base';
 import { SpatialIdentification } from 'spatial-id-svc-common';
+
+import {
+  error,
+  ErrorResponse,
+  GetAreaRequest,
+  SpatialDefinition,
+  SpatialDefinitions,
+  success,
+} from './client-blocked-areas';
 
 export interface ReservedArea {
   id: string;
@@ -22,18 +32,29 @@ export interface GetReservedAreasRequest {
 }
 
 export interface GetReservedAreasResponse {
-  responseHeader: CommonResponseHeader;
-  reservedAreas: ReservedArea[];
-  status: StreamStatus;
+  responseHeader?: CommonResponseHeader;
+  objects: SpatialDefinition[];
+  // reservedAreas: ReservedArea[];
+  // status: StreamStatus;
+}
+export interface GetEmergencyAreas {
+  objects: SpatialDefinition[];
 }
 
-export interface GetReservedAreaResponse {
-  responseHeader: CommonResponseHeader;
-  reservedArea: ReservedArea;
+export interface GetReservedAreaResponse extends SpatialDefinition {
+  responseHeader?: CommonResponseHeader;
+  // reservedArea: ReservedArea;
+  // result: SpatialDefinition;
+  // error: ErrorResponse;
 }
 
 export interface CreateReservedAreaRequest {
   reservedArea: ReservedArea;
+}
+
+export interface CreateEmergencyAreaRequest {
+  overwrite: boolean;
+  object: SpatialDefinition;
 }
 
 export interface CreateReservedAreaResponse {
@@ -44,7 +65,8 @@ export interface CreateReservedAreaResponse {
 export interface GetReservedAreasParams {
   baseUrl: string;
   authInfo: AuthInfo;
-  payload: GetReservedAreasRequest;
+  // payload: GetReservedAreasRequest;
+  payload: GetAreaRequest;
   abortSignal?: AbortSignal;
 }
 
@@ -55,14 +77,20 @@ export const getReservedAreas = async function* ({
   payload,
   abortSignal,
 }: GetReservedAreasParams) {
+  let objectId = '0';
   for await (const chunk of fetchJsonStream<GetReservedAreasResponse>({
     method: 'POST',
     baseUrl,
-    path: '/area_service/reserved_areas_list',
+    path: '/uas/api/airmobility/v3/get-value',
     authInfo,
     payload,
     abortSignal,
   })) {
+    if (chunk?.result?.objects?.[0]?.objectId !== '0') {
+      objectId = chunk?.result?.objects[0]?.objectId;
+      continue;
+    }
+    chunk.result.objects[0].objectId = objectId;
     yield chunk;
   }
 };
@@ -74,26 +102,35 @@ export interface GetReservedAreaParams {
   abortSignal?: AbortSignal;
 }
 
-/** ID を指定して予約エリアを 1 件取得する */
-export const getReservedArea = async ({
+export const getReservedArea = async function* ({
   baseUrl,
   authInfo,
   id,
   abortSignal,
-}: GetReservedAreaParams) => {
-  return await fetchJson<GetReservedAreaResponse>({
-    method: 'GET',
+}: GetReservedAreaParams) {
+  let objectId = '0';
+  for await (const chunk of fetchJsonStream<GetReservedAreaResponse>({
+    method: 'POST',
     baseUrl,
-    path: `/area_service/reserved_areas/${encodeURIComponent(id)}`,
+    path: `/uas/api/airmobility/v3/get-object`,
     authInfo,
+    payload: { objectId: id },
     abortSignal,
-  });
+  })) {
+    if (chunk.result.objectId !== '0') {
+      objectId = chunk.result.objectId;
+      continue;
+    }
+    chunk.result.objectId = objectId;
+    yield chunk;
+  }
 };
 
 export interface CreateReservedAreaParams {
   baseUrl: string;
   authInfo: AuthInfo;
-  payload: CreateReservedAreaRequest;
+  // payload: CreateReservedAreaRequest;
+  payload: CreateEmergencyAreaRequest;
   abortSignal?: AbortSignal;
 }
 
@@ -104,14 +141,18 @@ export const createReservedArea = async ({
   payload,
   abortSignal,
 }: CreateReservedAreaParams) => {
-  return await fetchJson<CreateReservedAreaResponse>({
+  const resp = await fetchJson<success | error>({
     method: 'POST',
     baseUrl,
-    path: '/area_service/reserved_areas',
+    path: '/uas/api/airmobility/v3/put-object',
     authInfo,
     payload,
     abortSignal,
   });
+  if ('code' in resp) {
+    throw new ApiResponseError('failed to create: error occured with code ' + resp.code);
+  }
+  return resp;
 };
 
 export interface DeleteReservedAreaParams {
@@ -129,10 +170,11 @@ export const deleteReservedArea = async ({
   abortSignal,
 }: DeleteReservedAreaParams) => {
   await fetchJson({
-    method: 'DELETE',
+    method: 'POST',
     baseUrl,
-    path: `/area_service/reserved_areas/${encodeURIComponent(id)}`,
+    path: `/uas/api/airmobility/v3/delete-object`,
     authInfo,
+    payload: { objectId: id },
     abortSignal,
   });
 };

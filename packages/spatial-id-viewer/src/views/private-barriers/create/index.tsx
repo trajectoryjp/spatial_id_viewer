@@ -2,7 +2,7 @@ import Head from 'next/head';
 import { useCallback } from 'react';
 import { useLatest } from 'react-use';
 
-import { BarrierDefinition, createPrivateBarrier, PrivateBarrier } from 'spatial-id-svc-route';
+import { BarrierDefinitionVoxel, BarrierNew, createBuildingBarrier } from 'spatial-id-svc-route';
 
 import { AreaCreator, IAreas } from '#app/components/area-creator';
 import { WithAuthGuard } from '#app/components/auth-guard';
@@ -18,24 +18,34 @@ const useRegister = () => {
 
   const register = useCallback(async (areas: IAreas<WholeAreaInfo, AreaAdditionalInfo>) => {
     const payload = {
-      id: '0',
-      barrierDefinitions: areas.data
-        .map((area) =>
-          area.spatialIds.map((spatialId) => {
-            return {
-              spatialIdentification: {
-                ID: spatialId,
-              },
-              risk: (area.additionalInfo as any).risk,
-            } as BarrierDefinition;
-          })
-        )
-        .flat(),
-      clearance: areas.wholeAreaInfo.clearance,
-      status: 'STATUS_DONE',
-    } as PrivateBarrier;
+      overwrite: false,
+      object: {
+        building: {
+          reference: 'BTS84',
+          voxelValues: areas.data
+            .map((area) =>
+              area.spatialIds.map((spatialId) => {
+                return {
+                  id: {
+                    ID: spatialId,
+                  },
+                  vacant: true,
+                  // risk: area.additionalInfo.risk,
+                } as BarrierDefinitionVoxel;
+              })
+            )
+            .flat(),
+        },
+      },
+      // clearance: areas.wholeAreaInfo.clearance,
+      // status: 'STATUS_DONE',
+    } as BarrierNew;
 
-    await createPrivateBarrier({ baseUrl: apiBaseUrl, authInfo: authInfo.current, payload });
+    return await createBuildingBarrier({
+      baseUrl: apiBaseUrl,
+      authInfo: authInfo.current,
+      payload,
+    });
   }, []);
 
   return register;
@@ -51,8 +61,10 @@ const PrivateBarrierCreator = () => {
       </Head>
       <AreaCreator<WholeAreaInfo, AreaAdditionalInfo>
         register={register}
-        areaAdditionalInfoFragment={AreaAdditionalInfoFragment}
-        wholeAreaInfoFragment={WholeAreaInfoFragment}
+        // areaAdditionalInfoFragment={AreaAdditionalInfoFragment}
+        // wholeAreaInfoFragment={WholeAreaInfoFragment}
+        areaAdditionalInfoFragment={null}
+        wholeAreaInfoFragment={null}
       />
     </>
   );

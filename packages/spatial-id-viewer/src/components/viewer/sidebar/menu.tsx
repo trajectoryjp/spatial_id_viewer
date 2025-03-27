@@ -21,7 +21,7 @@ export const Menu = () => {
   return (
     <>
       <MenuCategory>
-        <MenuTitle>パブリックバリア</MenuTitle>
+        <MenuTitle>地形バリア</MenuTitle>
         <MenuEntry>
           <Link href="/barriers">表示・削除</Link>
         </MenuEntry>
@@ -31,35 +31,42 @@ export const Menu = () => {
       </MenuCategory>
 
       <MenuCategory>
-        <MenuTitle>プライベートバリア</MenuTitle>
+        <MenuTitle>建物バリア</MenuTitle>
         <MenuEntry>
-          <Link href="/private-barriers">表示・削除</Link>
+          <Link href="/building-barriers">表示・削除</Link>
         </MenuEntry>
         <MenuEntry>
-          <Link href="/private-barriers/create">生成</Link>
-        </MenuEntry>
-      </MenuCategory>
-
-      <MenuCategory>
-        <MenuTitle>飛行エリア予約</MenuTitle>
-        <MenuEntry>
-          <Link href="/reserved-areas">表示・削除</Link>
-        </MenuEntry>
-        <MenuEntry>
-          <Link href="/reserved-areas/create">生成</Link>
+          <Link href="/building-barriers/create">生成</Link>
         </MenuEntry>
       </MenuCategory>
 
       <MenuCategory>
-        <MenuTitle>割込禁止エリア予約</MenuTitle>
+        <MenuTitle>緊急エリア</MenuTitle> {/*Changed Flight Area reservation to emergency area*/}
+        <MenuEntry>
+          <Link href="/emergency-areas">表示・削除</Link>
+        </MenuEntry>
+        <MenuEntry>
+          <Link href="/emergency-areas/create">生成</Link>
+        </MenuEntry>
+      </MenuCategory>
+
+      <MenuCategory>
+        <MenuTitle>立ち入り禁止エリア</MenuTitle>
         <MenuEntry>
           <Link href="/blocked-areas">表示・削除</Link>
         </MenuEntry>
         <MenuEntry>
           <Link href="/blocked-areas/create">生成</Link>
         </MenuEntry>
+      </MenuCategory>
+
+      <MenuCategory>
+        <MenuTitle>オーバーレイエリア</MenuTitle>
         <MenuEntry>
-          <Link href="/blocked-areas/auto-create">位置情報による自動生成</Link>
+          <Link href="/overlay-areas">表示・削除</Link>
+        </MenuEntry>
+        <MenuEntry>
+          <Link href="/overlay-areas/create">生成</Link>
         </MenuEntry>
       </MenuCategory>
 
@@ -74,16 +81,43 @@ export const Menu = () => {
       </MenuCategory>
 
       <MenuCategory>
-        <MenuTitle>機体割付ルート</MenuTitle>
+        <MenuTitle>飛行計画エリア</MenuTitle>
         <MenuEntry>
-          <Link href="/aircraft-routes">表示</Link>
+          <Link href="/permitted-airspace">表示</Link>
+        </MenuEntry>
+      </MenuCategory>
+
+      {/* <MenuCategory>
+        <MenuTitle>ルート設計</MenuTitle>
+        <MenuEntry>
+          <Link href="/routes/create">生成</Link>
+        </MenuEntry>
+      </MenuCategory> */}
+
+      <MenuCategory>
+        <MenuTitle>気象</MenuTitle>
+        <MenuEntry>
+          <Link href="/weather">表示・削除</Link>
+        </MenuEntry>
+        <MenuEntry>
+          <Link href="/weather/create">生成</Link>
         </MenuEntry>
       </MenuCategory>
 
       <MenuCategory>
-        <MenuTitle>ルート設計</MenuTitle>
+        <MenuTitle>電波強度</MenuTitle>
         <MenuEntry>
-          <Link href="/routes/create">設計</Link>
+          <Link href="/signal-strength">表示・削除</Link>
+        </MenuEntry>
+        <MenuEntry>
+          <Link href="/signal-strength/create">生成</Link>
+        </MenuEntry>
+      </MenuCategory>
+
+      <MenuCategory>
+        <MenuTitle>リスクレベル</MenuTitle>
+        <MenuEntry>
+          <Link href="/risk-levels">表示</Link>
         </MenuEntry>
       </MenuCategory>
     </>

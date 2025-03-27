@@ -9,7 +9,18 @@ import { NavigationButtons } from '#app/components/navigation';
 export const SelectAddOrSendFragment = memo(() => {
   const store = useStoreApi();
   const nextPage = useStore(store, (s) =>
-    s.wholeAreaInfoFragment ? Pages.InputWholeAreaInfo : Pages.Register
+    // s.wholeAreaInfoFragment ? Pages.InputWholeAreaInfo : Pages.Register
+    s.restrictionInfoFragment
+      ? Pages.InputRestrictionInfo
+      : s.wholeAreaInfoFragment
+      ? Pages.InputWholeAreaInfo
+      : s.ownerAddressFragment
+      ? Pages.OwnerAddressInfo
+      : s.mobileInfoFragment
+      ? Pages.InputMobileInfo
+      : s.wifiInfoFragment
+      ? Pages.InputWifiInfo
+      : Pages.Register
   );
   const update = useStore(store, (s) => s.update);
 

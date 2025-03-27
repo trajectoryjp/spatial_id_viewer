@@ -29,6 +29,29 @@ export class ApiAuthError extends ApiHttpStatusError {
     super(message, 401, options);
   }
 }
+export class ApiServiceError extends ApiHttpStatusError {
+  name = 'ApiServiceError';
+
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, 503, options);
+  }
+}
+
+export class InvalidRequestError extends ApiHttpStatusError {
+  name = 'BadRequestError';
+
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, 400, options);
+  }
+}
+
+export class ApiNotFoundError extends ApiHttpStatusError {
+  name = 'ApiNotFoundError';
+
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, 404, options);
+  }
+}
 
 /** REST API レスポンスのペイロード関連のエラー */
 export class ApiResponseError extends ApiBaseError {
@@ -55,4 +78,8 @@ export class ApiCommonStatusError extends ApiResponseError {
   ) {
     super(message, options);
   }
+}
+
+export class ResponseTooLargeError extends Error {
+  name = 'ResponseTooLarge';
 }

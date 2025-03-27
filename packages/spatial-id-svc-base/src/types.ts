@@ -13,6 +13,7 @@ export type HttpMethod =
 /** 認証情報オブジェクト */
 export interface AuthInfo {
   username: string;
+  organizationID?: string;
   token: string;
 }
 
@@ -20,12 +21,15 @@ export interface AuthInfo {
 export interface StreamError {
   code: number;
   message: string;
+  details?: unknown[];
 }
 
 /** ストリーム API のレスポンスペイロード */
 export interface StreamResponse<T> {
   result?: T;
   error?: StreamError;
+  outOfSpace?: T;
+  flyableSpace?: T;
 }
 
 /** ストリーム API のステータス */
@@ -43,5 +47,5 @@ export interface CommonResponseHeader {
 
 /** 共通レスポンスヘッダーを持つオブジェクト */
 export interface WithCommonResponseHeader {
-  responseHeader: CommonResponseHeader;
+  responseHeader?: CommonResponseHeader;
 }

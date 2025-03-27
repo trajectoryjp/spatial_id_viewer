@@ -3,6 +3,7 @@ import { immerable, produce } from 'immer';
 import { Mutate, StoreApi } from 'zustand';
 
 import { getGeoidHeight } from 'spatial-id-converter';
+import { successResponse } from 'spatial-id-svc-route/src/client-routes';
 
 import { createStoreHandlers, createStoreUpdater } from '#app/stores/utils';
 
@@ -17,11 +18,12 @@ export interface IWaypoint<WaypointAdditionalInfo = any> {
 }
 
 /** ウェイポイント全体の情報 */
-export interface IWaypoints<WholeRouteInfo = any, WaypointAdditionalInfo = any> {
+export interface IWaypoints<WholeRouteInfo = any, RouteInfo = any, WaypointAdditionalInfo = any> {
   /** ウェイポイント情報 */
   data: IWaypoint<WaypointAdditionalInfo>[];
   /** ウェイポイント全体の追加の情報 */
   wholeRouteInfo: WholeRouteInfo;
+  routeInfo: RouteInfo;
 }
 
 const createRandomId = () => {
@@ -99,6 +101,7 @@ class Waypoints implements IWaypoints {
   pointing: TargetFeature | null = null;
   clicked: TargetFeature | null = null;
   wholeRouteInfo: any = null;
+  routeInfo: any = null;
 
   get current() {
     if (this.selected?.type !== 'point') {
@@ -227,6 +230,12 @@ export interface WholeRouteInfoFragmentProps<WholeRouteInfo = any> {
   navigatePrev: () => void;
   navigateNext: () => void;
 }
+export interface RouteInfoFragmentProps<RouteInfo = any> {
+  routeInfo: RouteInfo | null;
+  setRouteInfo: (areaInfo: RouteInfo | null) => void;
+  navigatePrev: () => void;
+  navigateNext: () => void;
+}
 
 class Store {
   [immerable] = true;
@@ -237,7 +246,8 @@ class Store {
 
   waypointAdditionalInfoFragment: React.FC<WaypointAdditionalInfoFragmentProps> | null = null;
   wholeRouteInfoFragment: React.FC<WholeRouteInfoFragmentProps> | null = null;
-  registerFunc: (store: IWaypoints) => Promise<void> | null = null;
+  routeInfoFragment: React.FC<RouteInfoFragmentProps> | null = null;
+  registerFunc: (store: IWaypoints) => Promise<void | successResponse> | null = null;
 
   constructor(
     private readonly set: StoreApi<Store>['setState'],
@@ -266,7 +276,8 @@ export const Pages = {
   SplitLine: 4,
   SelectActionForPoint: 5,
   MovePoint: 6,
-  InputWholeRouteInfo: 7,
+  // InputWholeRouteInfo: 7,
+  InputRouteInfo: 7,
   Register: 8,
 } as const;
 export type Pages = (typeof Pages)[keyof typeof Pages];

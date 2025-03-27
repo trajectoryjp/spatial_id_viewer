@@ -1,11 +1,15 @@
 import { Button } from 'flowbite-react';
+import { set } from 'immer/dist/internal';
 import { memo, useCallback, useState } from 'react';
 import { useMount } from 'react-use';
 import { useStore } from 'zustand';
 
+import { successResponse } from 'spatial-id-svc-route';
+
+import { errorMessages } from '#app/components/area-creator/interfaces';
 import { useStoreApi } from '#app/components/area-creator/store';
 import { NavigationButtons } from '#app/components/navigation';
-import { warnIfTokenExpired } from '#app/utils/warn-if-token-expired';
+import { setCustomError } from '#app/utils/set-custom-error';
 
 /** 使用側から渡される登録関数を呼び出す画面 */
 export const RegisterFragment = memo(() => {
@@ -14,16 +18,17 @@ export const RegisterFragment = memo(() => {
   const registerFunc = useStore(store, (s) => s.registerFunc)!;
 
   const [result, setResult] = useState<boolean>(null);
-
+  const [response, setResponse] = useState<any>(null);
   const register = useCallback(async () => {
     setResult(null);
 
     try {
-      await registerFunc(store.getState().areas);
+      const response = await registerFunc(store.getState().areas);
+      setResponse(response);
       setResult(true);
     } catch (e) {
       console.error(e);
-      warnIfTokenExpired(e);
+      setCustomError(e);
       setResult(false);
     }
   }, []);
@@ -33,12 +38,24 @@ export const RegisterFragment = memo(() => {
   const onResetButtonClick = reset;
 
   return result === null ? (
-    <p>登録しています...</p>
+    <p key={`p1`}>登録しています...</p>
   ) : result ? (
     <>
-      <p>登録が正常に完了しました。</p>
+      {response && response.objectId && response.objectId !== '0' && (
+        <p key={`p2`}>登録が正常に完了しました。</p>
+      )}
+      {response && response.error && errorMessages[response.error] && (
+        <p key={`p3`}>{errorMessages[response.error]}</p>
+      )}
+      {response && response.objectId && response.objectId !== '0' && (
+        <p key={'p4'}>登録された ID: {response.objectId}</p>
+      )}
       <NavigationButtons>
-        <Button onClick={onResetButtonClick}>さらに登録する</Button>
+        <Button onClick={onResetButtonClick}>
+          {response && response.error && errorMessages[response.error]
+            ? 'はじめからやり直す'
+            : 'さらに登録する'}
+        </Button>
       </NavigationButtons>
     </>
   ) : (

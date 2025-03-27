@@ -11,7 +11,7 @@ export const SelectPointOrFeatureFragment = memo(() => {
   const store = useStoreApi();
   const hasWaypoint = useStore(store, (s) => s.waypoints.data.length > 0);
   const hasLine = useStore(store, (s) => s.waypoints.data.length >= 2);
-  const hasWholeRouteInfoFragment = useStore(store, (s) => !!s.wholeRouteInfoFragment);
+  const hasWholeRouteInfoFragment = useStore(store, (s) => !!s.routeInfoFragment);
   const clickedFeature = useStore(store, (s) => s.waypoints.clicked);
   const clickedPoint = useStore(store, (s) => s.clickedPoint);
   const update = useStore(store, (s) => s.update);
@@ -50,7 +50,8 @@ export const SelectPointOrFeatureFragment = memo(() => {
 
   const onCompleteButtonClick = async () => {
     update(
-      (s) => (s.page = hasWholeRouteInfoFragment ? Pages.InputWholeRouteInfo : Pages.Register)
+      // (s) => (s.page = hasWholeRouteInfoFragment ? Pages.InputWholeRouteInfo : Pages.Register)
+      (s) => (s.page = hasWholeRouteInfoFragment ? Pages.InputRouteInfo : Pages.Register)
     );
   };
 

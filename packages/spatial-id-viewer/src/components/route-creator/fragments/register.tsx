@@ -16,12 +16,14 @@ export const RegisterFragment = memo(() => {
   const registerFunc = useStore(store, (s) => s.registerFunc)!;
 
   const [result, setResult] = useState<boolean>(null);
+  const [response, setResponse] = useState<any>(null);
 
   const register = async () => {
     setResult(null);
 
     try {
-      await registerFunc(store.getState().waypoints);
+      const response = await registerFunc(store.getState().waypoints);
+      setResponse(response);
       setResult(true);
     } catch (e) {
       if (e instanceof InvalidPathError) {
@@ -44,10 +46,11 @@ export const RegisterFragment = memo(() => {
   const onResetButtonClick = reset;
 
   return result === null ? (
-    <p>登録しています...</p>
+    <p key={`p1`}>登録しています...</p>
   ) : result ? (
     <>
-      <p>登録が正常に完了しました。</p>
+      <p key={`p2`}>登録が正常に完了しました。</p>
+      {response && response.objectId && <p>登録された ID: {response.objectId}</p>}
       <NavigationButtons>
         <Button onClick={onResetButtonClick}>さらに登録する</Button>
       </NavigationButtons>
