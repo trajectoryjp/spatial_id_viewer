@@ -24,7 +24,7 @@ export const setCustomError = (error: unknown) => {
       position: 'bottom-center',
     });
   } else if (error instanceof ResponseTooLargeError) {
-    toast.error('レスポンスが大きいため、処理を中断しました」などのメッセージを表示す', {
+    toast.error('オブジェクトが大きすぎます', {
       position: 'bottom-center',
     });
   } else if (error instanceof ApiDomError) {
