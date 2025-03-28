@@ -10,11 +10,12 @@ import {
   SpatialDefinition,
   SpatialDefinitions,
 } from 'spatial-id-svc-area';
-import { ResponseTooLargeError, StreamResponse } from 'spatial-id-svc-base';
+import { ResponseTooLargeError, StreamResponse, VoxelTypeError } from 'spatial-id-svc-base';
 
 import { DisplayDetails } from '#app/components/area-viewer/interface';
 import { apiBaseUrl } from '#app/constants';
 import { useAuthInfo } from '#app/stores/auth-info';
+import { barrierTypes } from '#app/utils/create-process-barrier-map';
 import { mapGetOrSet } from '#app/utils/map-get-or-set';
 
 interface WeatherInfo extends Record<string, unknown> {
@@ -39,7 +40,7 @@ export const useLoadModel = (type: string) => {
   const loadModel = useCallback(async (id: string) => {
     const spatialIds = await processWeathers(
       getWeather({ baseUrl: apiBaseUrl, authInfo: authInfo.current, id }),
-      type
+      type as keyof typeof barrierTypes
     );
     const barrier = spatialIds.get(id);
     if (barrier === undefined) {
@@ -66,7 +67,7 @@ export const useLoadModels = (type: string) => {
         authInfo: authInfo.current,
         payload: displayDetails as GetWeatherRequest,
       }),
-      type
+      type as keyof typeof barrierTypes
     );
 
     const models = new Map(
@@ -212,11 +213,14 @@ export const createWeatherMap = (
 
 export const processWeathers = async (
   result: AsyncGenerator<StreamResponse<SpatialDefinition | SpatialDefinitions>>,
-  type: string
+  type: keyof typeof barrierTypes
 ) => {
   let barriers = new Map<string, Map<string, SpatialId<WeatherInfo>>>();
   for await (const resp of result) {
     if ('objectId' in resp.result) {
+      if (!(type in resp.result)) {
+        throw new VoxelTypeError(`指定したIDは${barrierTypes[type]}ではありません`);
+      }
       barriers = createWeatherMap(barriers, resp.result, type);
     } else if ('objects' in resp.result) {
       for (const object of resp.result.objects) {
