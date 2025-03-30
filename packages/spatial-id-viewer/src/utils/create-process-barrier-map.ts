@@ -1,5 +1,5 @@
 import { SpatialId } from 'spatial-id-converter';
-import { ResponseTooLargeError, StreamResponse } from 'spatial-id-svc-base';
+import { ResponseTooLargeError, StreamResponse, VoxelTypeError } from 'spatial-id-svc-base';
 import { SpatialDefinition, SpatialDefinitions } from 'spatial-id-svc-route';
 
 import { mapGetOrSet } from '#app/utils/map-get-or-set';
@@ -43,11 +43,14 @@ export const createBarrierMap = (
 
 export const processBarriers = async (
   result: AsyncGenerator<StreamResponse<SpatialDefinition | SpatialDefinitions>>,
-  type: string
+  type: keyof typeof barrierTypes
 ) => {
   let barriers = new Map<string, Map<string, SpatialId<Info>>>();
   for await (const resp of result) {
     if ('objectId' in resp.result) {
+      if (!(type in resp.result)) {
+        throw new VoxelTypeError(`指定したIDは${barrierTypes[type]}ではありません`);
+      }
       barriers = createBarrierMap(barriers, resp.result, type);
     } else if ('objects' in resp.result) {
       for (const object of resp.result.objects) {
@@ -65,3 +68,16 @@ export const processBarriers = async (
   }
   return barriers;
 };
+
+export enum barrierTypes {
+  'terrain' = '地形バリア',
+  'building' = '建物バリア',
+  'restrictedArea' = '立ち入り禁止エリア',
+  'mobile' = 'モバイル情報',
+  'wifi' = 'Wi-Fi情報',
+  'overlayArea' = 'オーバーレイエリア',
+  'emergencyArea' = '緊急エリア',
+  'reserveArea' = '予約ルート',
+  'weather' = '気象情報',
+  'weatherForecast' = '気象予報',
+}
