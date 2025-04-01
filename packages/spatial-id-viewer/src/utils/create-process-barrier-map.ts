@@ -41,10 +41,10 @@ export const createBarrierMap = (
   return map;
 };
 
-export const processBarriers = async (
+export const processBarriers = async function* (
   result: AsyncGenerator<StreamResponse<SpatialDefinition | SpatialDefinitions>>,
   type: keyof typeof barrierTypes
-) => {
+) {
   let barriers = new Map<string, Map<string, SpatialId<Info>>>();
   for await (const resp of result) {
     if ('objectId' in resp.result) {
@@ -65,8 +65,9 @@ export const processBarriers = async (
         throw new ResponseTooLargeError();
       }
     }
+
+    yield barriers;
   }
-  return barriers;
 };
 
 export enum barrierTypes {

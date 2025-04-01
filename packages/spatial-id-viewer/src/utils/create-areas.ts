@@ -34,10 +34,10 @@ export const processArea = (area: any, type: string) => {
   return spatialIds;
 };
 
-export const processAreas = async (
+export const processAreas = async function* (
   result: AsyncGenerator<StreamResponse<GetAreas>>,
   type: string
-) => {
+) {
   const areas = new Map<string, Map<string, SpatialId<AreaInfo>>>();
   for await (const resp of result) {
     for (const area of resp.result.objects) {
@@ -48,9 +48,8 @@ export const processAreas = async (
         spatialIds.set(spatialId, spatialIdObj);
       }
     }
+    yield areas;
   }
-
-  return areas;
 };
 
 export const convertToModels = async (areas: Map<string, Map<string, SpatialId<AreaInfo>>>) => {
