@@ -3,48 +3,31 @@ import { castDraft, Draft } from 'immer';
 import Head from 'next/head';
 import { ChangeEvent, useCallback, useEffect, useState } from 'react';
 import { useLatest } from 'react-use';
-import { useStore } from 'zustand';
 
 import { CuboidCollection, SpatialId } from 'spatial-id-converter';
-import { AuthInfo, StreamResponse } from 'spatial-id-svc-base';
+import { StreamResponse } from 'spatial-id-svc-base';
 import { RequestTypes } from 'spatial-id-svc-common';
 import {
-  getAircrafts,
   getPermittedAirSpace,
   getPermittedAirSpaceRequest,
   getPermittedAirSpaceStream,
-  GetPermittedRoutesResponse,
-  getReservedId,
-  getReservedRoute,
-  GetReservedRouteResponse,
 } from 'spatial-id-svc-route';
 
-import { AreaViewer, createUseModels } from '#app/components/area-viewer';
+import { AreaViewer } from '#app/components/area-viewer';
 import { createUseAirspaceModels } from '#app/components/area-viewer/create-use-airspace';
 import { DisplayDetails } from '#app/components/area-viewer/interface';
-import { useStoreApi, WithStore } from '#app/components/area-viewer/store';
+import { WithStore } from '#app/components/area-viewer/store';
 import { WithAuthGuard } from '#app/components/auth-guard';
 import { apiBaseUrl } from '#app/constants';
 import { useAuthInfo } from '#app/stores/auth-info';
-import { mapGetOrSet } from '#app/utils/map-get-or-set';
 import AdditionalDateSettings from '#app/views/aircraft-routes/view/AdditionalDate';
 // import { useStoreApi, WithStore } from '#app/views/aircraft-routes/view/store';
 
 /** 表示するメタデータ */
-interface AircraftRouteInfo extends Record<string, unknown> {
-  id: string;
-  reservedRouteId: string;
-  spatialId: string;
-}
 
 interface AirSpaceInfo extends Record<string, unknown> {
   type: string;
   spatialId: string;
-}
-
-interface FetchAircraftInfoResult {
-  aircraftId: string;
-  response: GetReservedRouteResponse;
 }
 
 const createModel = async (IDs: string[], key: string) => {

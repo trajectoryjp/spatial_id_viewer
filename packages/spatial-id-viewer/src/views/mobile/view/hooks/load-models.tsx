@@ -27,21 +27,22 @@ const MULTIPLE = 'multiple_models';
 export const useLoadModel = (type: string) => {
   const authInfo = useLatest(useAuthInfo((s) => s.authInfo));
 
-  const loadModel = useCallback(async (id: string) => {
-    const spatialIds = await processSignals(
+  const loadModel = useCallback(async function* (id: string) {
+    for await (const spatialIds of processSignals(
       getSignalArea({ baseUrl: apiBaseUrl, authInfo: authInfo.current, id }),
       type as keyof typeof barrierTypes
-    );
-    const barrier = spatialIds.get(id);
-    if (barrier === undefined) {
-      throw new Error(`barrier ${id} not found in response`);
+    )) {
+      const barrier = spatialIds.get(id);
+      if (barrier === undefined) {
+        throw new Error(`barrier ${id} not found in response`);
+      }
+
+      const model = new CuboidCollection<SignalInfo>(
+        await Promise.all([...barrier.values()].map((s) => s.createCuboid()))
+      );
+
+      yield model;
     }
-
-    const model = new CuboidCollection<SignalInfo>(
-      await Promise.all([...barrier.values()].map((s) => s.createCuboid()))
-    );
-
-    return model;
   }, []);
 
   return loadModel;
@@ -50,30 +51,29 @@ export const useLoadModel = (type: string) => {
 export const useLoadModels = (type: string) => {
   const authInfo = useLatest(useAuthInfo((s) => s.authInfo));
 
-  const loadModels = useCallback(async (displayDetails: DisplayDetails) => {
-    const areas = await processSignals(
+  const loadModels = useCallback(async function* (displayDetails: DisplayDetails) {
+    for await (const areas of processSignals(
       getSignalAreas({
         baseUrl: apiBaseUrl,
         authInfo: authInfo.current,
         payload: displayDetails as GetSignalRequest,
       }),
       type as keyof typeof barrierTypes
-    );
-
-    const models = new Map(
-      (await Promise.all(
-        [...areas.entries()]
-          .filter(([, v]) => v.size)
-          .map(async ([barrierId, spatialIds]) => [
-            barrierId,
-            new CuboidCollection(
-              await Promise.all([...spatialIds.values()].map((s) => s.createCuboid()))
-            ),
-          ])
-      )) as [string, CuboidCollection<SignalInfo>][]
-    );
-
-    return models;
+    )) {
+      const models = new Map(
+        (await Promise.all(
+          [...areas.entries()]
+            .filter(([, v]) => v.size)
+            .map(async ([barrierId, spatialIds]) => [
+              barrierId,
+              new CuboidCollection(
+                await Promise.all([...spatialIds.values()].map((s) => s.createCuboid()))
+              ),
+            ])
+        )) as [string, CuboidCollection<SignalInfo>][]
+      );
+      yield models;
+    }
   }, []);
 
   return loadModels;
@@ -156,10 +156,10 @@ export const createSignalMap = (
   return map;
 };
 
-export const processSignals = async (
+export const processSignals = async function* (
   result: AsyncGenerator<StreamResponse<SpatialDefinition | SpatialDefinitions>>,
   type: keyof typeof barrierTypes
-) => {
+) {
   let barriers = new Map<string, Map<string, SpatialId<SignalInfo>>>();
   for await (const resp of result) {
     if ('objectId' in resp.result) {
@@ -179,6 +179,6 @@ export const processSignals = async (
         throw new ResponseTooLargeError();
       }
     }
+    yield barriers;
   }
-  return barriers;
 };

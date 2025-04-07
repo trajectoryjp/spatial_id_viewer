@@ -30,22 +30,22 @@ interface OverlayAreaInfo extends Record<string, unknown> {
 const useLoadModel = () => {
   const authInfo = useLatest(useAuthInfo((s) => s.authInfo));
 
-  const loadModel = useCallback(async (id: string) => {
-    const spatialIds = await processBarriers(
+  const loadModel = useCallback(async function* (id: string) {
+    for await (const spatialIds of processBarriers(
       getOverlayArea({ baseUrl: apiBaseUrl, authInfo: authInfo.current, id }),
       'overlayArea'
-    );
+    )) {
+      const barrier = spatialIds.get(id);
+      if (barrier === undefined) {
+        throw new Error(`barrier ${id} not found in response`);
+      }
 
-    const barrier = spatialIds.get(id);
-    if (barrier === undefined) {
-      throw new Error(`barrier ${id} not found in response`);
+      const model = new CuboidCollection<OverlayAreaInfo>(
+        await Promise.all([...barrier.values()].map((s) => s.createCuboid()))
+      );
+
+      yield model;
     }
-
-    const model = new CuboidCollection<OverlayAreaInfo>(
-      await Promise.all([...barrier.values()].map((s) => s.createCuboid()))
-    );
-
-    return model;
   }, []);
 
   return loadModel;
@@ -54,18 +54,18 @@ const useLoadModel = () => {
 const useLoadModels = () => {
   const authInfo = useLatest(useAuthInfo((s) => s.authInfo));
 
-  const loadModels = useCallback(async (displayDetails: DisplayDetails) => {
-    const areas = await processAreas(
+  const loadModels = useCallback(async function* (displayDetails: DisplayDetails) {
+    for await (const areas of processAreas(
       getOverlayAreas({
         baseUrl: apiBaseUrl,
         authInfo: authInfo.current,
         payload: displayDetails as GetAreaRequest,
       }),
       'overlayArea'
-    );
-
-    const models = await convertToModels(areas);
-    return models;
+    )) {
+      const models = await convertToModels(areas);
+      yield models;
+    }
   }, []);
 
   return loadModels;
