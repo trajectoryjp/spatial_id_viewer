@@ -51,7 +51,7 @@ export const OwnerAddressFragment = memo(
 
     return (
       <>
-        <p>所有者の住所情報を入力してください</p>
+        <p>所有システムのアドレス情報を入力してください</p>
         <div>
           <div className="flex flex-col">
             {Object.values(StreamType).map((streamType) => (
@@ -67,7 +67,7 @@ export const OwnerAddressFragment = memo(
             ))}
           </div>
           <p>
-            <label htmlFor={inputId}>住所 </label>
+            <label htmlFor={inputId}>アドレス </label>
           </p>
           <TextInput
             type="text"

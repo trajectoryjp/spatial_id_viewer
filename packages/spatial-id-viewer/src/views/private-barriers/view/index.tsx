@@ -109,10 +109,10 @@ const PrivateBarriersViewer = () => {
   return (
     <>
       <Head>
-        <title>建物の障壁表示・削除</title>
+        <title>建物バリア表示・削除</title>
       </Head>
       <AreaViewer
-        featureName="建物の障壁"
+        featureName="建物バリア"
         useModels={useModels}
         tilesetStyle={tilesetStyle}
         requestType={RequestTypes.BUILDING}

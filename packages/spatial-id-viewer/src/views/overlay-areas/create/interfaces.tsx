@@ -4,7 +4,7 @@ export interface OwnerAddressInfo {
 }
 
 export enum StreamType {
-  grpc = 'grpc',
-  rest = 'rest',
-  other = 'other',
+  grpc = 'gRPCサーバーアドレスおよびポート',
+  rest = 'RESTサーバーベースURL',
+  other = 'その他形式',
 }
