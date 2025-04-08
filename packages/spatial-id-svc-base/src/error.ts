@@ -83,3 +83,11 @@ export class ApiCommonStatusError extends ApiResponseError {
 export class ResponseTooLargeError extends Error {
   name = 'ResponseTooLarge';
 }
+
+export class VoxelTypeError extends Error {
+  name = 'VoxelTypeError';
+
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
+  }
+}

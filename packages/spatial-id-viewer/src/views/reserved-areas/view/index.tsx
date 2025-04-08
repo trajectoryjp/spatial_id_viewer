@@ -52,10 +52,10 @@ const processReservedArea = (area: any, type: string) => {
   return spatialIds;
 };
 
-const processReservedAreas = async (
+const processReservedAreas = async function* (
   result: AsyncGenerator<StreamResponse<GetEmergencyAreas>>,
   type: string
-) => {
+) {
   const areas = new Map<string, Map<string, SpatialId<ReservedAreaInfo>>>();
   for await (const resp of result) {
     for (const area of resp.result.objects) {
@@ -70,30 +70,28 @@ const processReservedAreas = async (
         spatialIds.set(key, value);
       }
     }
+    yield areas;
   }
-
-  return areas;
 };
 
-/** ID を指定してモデルを 1 つ取得する関数を返す React Hook */
 const useLoadModel = () => {
   const authInfo = useLatest(useAuthInfo((s) => s.authInfo));
 
-  const loadModel = useCallback(async (id: string) => {
-    const spatialIds = await processBarriers(
+  const loadModel = useCallback(async function* (id: string) {
+    for await (const spatialIds of processBarriers(
       getReservedArea({ baseUrl: apiBaseUrl, authInfo: authInfo.current, id }),
       'emergencyArea'
-    );
+    )) {
+      const barrier = spatialIds.get(id);
+      if (barrier === undefined) {
+        throw new Error(`barrier ${id} not found in response`);
+      }
 
-    const barrier = spatialIds.get(id);
-    if (barrier === undefined) {
-      throw new Error(`barrier ${id} not found in response`);
+      const model = new CuboidCollection<ReservedAreaInfo>(
+        await Promise.all([...barrier.values()].map((s) => s.createCuboid()))
+      );
+      yield model;
     }
-    const model = new CuboidCollection<ReservedAreaInfo>(
-      await Promise.all([...barrier.values()].map((s) => s.createCuboid()))
-    );
-
-    return model;
   }, []);
 
   return loadModel;
@@ -101,36 +99,31 @@ const useLoadModel = () => {
 
 /** 空間 ID で範囲を指定してモデルを複数取得する関数を返す React Hook */
 const useLoadModels = () => {
-  // const store = useStoreApi();
-  // const startTime = useLatest(useStore(store, (s) => s.startTime));
-  // const endTime = useLatest(useStore(store, (s) => s.endTime));
-
   const authInfo = useLatest(useAuthInfo((s) => s.authInfo));
 
-  const loadModels = useCallback(async (displayDetails: DisplayDetails) => {
-    const areas = await processReservedAreas(
+  const loadModels = useCallback(async function* (displayDetails: DisplayDetails) {
+    for await (const areas of processReservedAreas(
       getReservedAreas({
         baseUrl: apiBaseUrl,
         authInfo: authInfo.current,
         payload: displayDetails as GetAreaRequest,
       }),
       'emergencyArea'
-    );
-
-    const models = new Map(
-      (await Promise.all(
-        [...areas.entries()]
-          .filter(([, v]) => v.size)
-          .map(async ([areaId, spatialIds]) => [
-            areaId,
-            new CuboidCollection(
-              await Promise.all([...spatialIds.values()].map((s) => s.createCuboid()))
-            ),
-          ])
-      )) as [string, CuboidCollection<ReservedAreaInfo>][]
-    );
-
-    return models;
+    )) {
+      const models = new Map(
+        (await Promise.all(
+          [...areas.entries()]
+            .filter(([, v]) => v.size)
+            .map(async ([areaId, spatialIds]) => [
+              areaId,
+              new CuboidCollection(
+                await Promise.all([...spatialIds.values()].map((s) => s.createCuboid()))
+              ),
+            ])
+        )) as [string, CuboidCollection<ReservedAreaInfo>][]
+      );
+      yield models;
+    }
   }, []);
 
   return loadModels;

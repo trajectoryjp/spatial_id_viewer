@@ -23,53 +23,53 @@ import { Info, processBarriers } from '#app/utils/create-process-barrier-map';
 const useLoadModel = () => {
   const authInfo = useLatest(useAuthInfo((s) => s.authInfo));
 
-  const loadModel = useCallback(async (id: string) => {
-    const barriers = await processBarriers(
+  const loadModel = useCallback(async function* (id: string) {
+    for await (const barriers of processBarriers(
       getPrivateBarrier({ baseUrl: apiBaseUrl, authInfo: authInfo.current, id }),
       'building'
-    );
-    const barrier = barriers.get(id);
-    if (barrier === undefined) {
-      throw new Error(`private barrier ${id} not found in response`);
-    }
+    )) {
+      const barrier = barriers.get(id);
+      if (barrier === undefined) {
+        throw new Error(`private barrier ${id} not found in response`);
+      }
 
-    const model = new CuboidCollection<Info>(
-      await Promise.all([...barrier.values()].map((b) => b.createCuboid()))
-    );
-    return model;
+      const model = new CuboidCollection<Info>(
+        await Promise.all([...barrier.values()].map((s) => s.createCuboid()))
+      );
+      yield model;
+    }
   }, []);
 
   return loadModel;
 };
 
-/** 空間 ID で範囲を指定してモデルを複数取得する関数を返す React Hook */
 const useLoadModels = () => {
   const authInfo = useLatest(useAuthInfo((s) => s.authInfo));
 
-  const loadModels = useCallback(async (displayDetails: DisplayDetails) => {
-    const barriers = await processBarriers(
+  const loadModels = useCallback(async function* (displayDetails: DisplayDetails) {
+    for await (const barriers of processBarriers(
       getPrivateBarriers({
         baseUrl: apiBaseUrl,
         authInfo: authInfo.current,
         payload: displayDetails as GetBuildingBarriersRequest,
       }),
       'building'
-    );
+    )) {
+      const models = new Map(
+        (await Promise.all(
+          [...barriers.entries()]
+            .filter(([, v]) => v.size)
+            .map(async ([barrierId, spatialIds]) => [
+              barrierId,
+              new CuboidCollection(
+                await Promise.all([...spatialIds.values()].map((s) => s.createCuboid()))
+              ),
+            ])
+        )) as [string, CuboidCollection<Info>][]
+      );
 
-    const models = new Map(
-      (await Promise.all(
-        [...barriers.entries()]
-          .filter(([, v]) => v.size)
-          .map(async ([barrierId, spatialIds]) => [
-            barrierId,
-            new CuboidCollection(
-              await Promise.all([...spatialIds.values()].map((s) => s.createCuboid()))
-            ),
-          ])
-      )) as [string, CuboidCollection<Info>][]
-    );
-
-    return models;
+      yield models;
+    }
   }, []);
 
   return loadModels;

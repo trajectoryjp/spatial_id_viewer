@@ -1,11 +1,9 @@
 import { Cesium3DTileStyle } from 'cesium';
-import { RangeSlider } from 'flowbite-react';
 import Head from 'next/head';
 import { ChangeEvent, useCallback, useEffect, useState } from 'react';
 import { useLatest } from 'react-use';
-import { useStore } from 'zustand';
 
-import { CuboidCollection, SpatialId } from 'spatial-id-converter';
+import { CuboidCollection } from 'spatial-id-converter';
 import { RequestTypes } from 'spatial-id-svc-common';
 import {
   deleteBarrier,
@@ -20,8 +18,7 @@ import { WithAuthGuard } from '#app/components/auth-guard';
 import { apiBaseUrl } from '#app/constants';
 import { useAuthInfo } from '#app/stores/auth-info';
 import { processBarriers } from '#app/utils/create-process-barrier-map';
-import { AdditionalSettings } from '#app/views/barriers/view/additonal-settings';
-import { useStoreApi, WithStore } from '#app/views/barriers/view/store';
+import { WithStore } from '#app/views/barriers/view/store';
 
 interface BarrierInfo extends Record<string, unknown> {
   id: string;
@@ -32,20 +29,21 @@ interface BarrierInfo extends Record<string, unknown> {
 const useLoadModel = () => {
   const authInfo = useLatest(useAuthInfo((s) => s.authInfo));
 
-  const loadModel = useCallback(async (id: string) => {
-    const barriers = await processBarriers(
+  const loadModel = useCallback(async function* (id: string) {
+    for await (const barriers of processBarriers(
       getBarrier({ baseUrl: apiBaseUrl, authInfo: authInfo.current, id }),
       'terrain'
-    );
-    const barrier = barriers.get(id);
-    if (barrier === undefined) {
-      throw new Error(`barrier ${id} not found in response`);
-    }
+    )) {
+      const barrier = barriers.get(id);
+      if (barrier === undefined) {
+        throw new Error(`barrier ${id} not found in response`);
+      }
 
-    const model = new CuboidCollection<BarrierInfo>(
-      await Promise.all([...barrier.values()].map((s) => s.createCuboid()))
-    );
-    return model;
+      const model = new CuboidCollection<BarrierInfo>(
+        await Promise.all([...barrier.values()].map((s) => s.createCuboid()))
+      );
+      yield model;
+    }
   }, []);
 
   return loadModel;
@@ -53,42 +51,31 @@ const useLoadModel = () => {
 
 /** 空間 ID で範囲を指定してモデルを複数取得する関数を返す React Hook */
 const useLoadModels = () => {
-  // const store = useStoreApi();
-  // const ownedBarriersOnly = useLatest(useStore(store, (s) => s.ownedBarriersOnly));
-
   const authInfo = useLatest(useAuthInfo((s) => s.authInfo));
 
-  const loadModels = useCallback(async (displayDetails: DisplayDetails) => {
-    const barriers = await processBarriers(
+  const loadModels = useCallback(async function* (displayDetails: DisplayDetails) {
+    for await (const barriers of processBarriers(
       getBarriers({
         baseUrl: apiBaseUrl,
         authInfo: authInfo.current,
         payload: displayDetails as GetTerrainBarriersRequest,
-        // payload: {
-        //   boundary: {
-        //     ID: bbox.toString(),
-        //   },
-        //   onlyOwnedBarriers: ownedBarriersOnly.current,
-        //   hasSpatialId: true,
-        // },
       }),
       'terrain'
-    );
-
-    const models = new Map(
-      (await Promise.all(
-        [...barriers.entries()]
-          .filter(([, v]) => v.size)
-          .map(async ([barrierId, spatialIds]) => [
-            barrierId,
-            new CuboidCollection(
-              await Promise.all([...spatialIds.values()].map((s) => s.createCuboid()))
-            ),
-          ])
-      )) as [string, CuboidCollection<BarrierInfo>][]
-    );
-
-    return models;
+    )) {
+      const models = new Map(
+        (await Promise.all(
+          [...barriers.entries()]
+            .filter(([, v]) => v.size)
+            .map(async ([barrierId, spatialIds]) => [
+              barrierId,
+              new CuboidCollection(
+                await Promise.all([...spatialIds.values()].map((s) => s.createCuboid()))
+              ),
+            ])
+        )) as [string, CuboidCollection<BarrierInfo>][]
+      );
+      yield models;
+    }
   }, []);
 
   return loadModels;
@@ -145,7 +132,6 @@ const BarriersViewer = () => {
           max={1}
           step={0.01}
         />
-        {/* <AdditionalSettings /> */}
       </AreaViewer>
     </>
   );
