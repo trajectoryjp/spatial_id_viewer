@@ -1,5 +1,4 @@
 import { Cesium3DTileStyle, Viewer } from 'cesium';
-import { RangeSlider } from 'flowbite-react';
 import Head from 'next/head';
 import { ChangeEvent, useEffect, useState } from 'react';
 import { CesiumComponentRef } from 'resium';
@@ -71,7 +70,18 @@ const CurrentWeatherViewer = (props: Props) => {
 
 const tilesetStyleFn = (tileOpacity: number, type: string) =>
   new Cesium3DTileStyle({
-    color: `hsla((1 - log(clamp(\${feature["${type}"]}, 1, 100)) / log(100)) * 2 / 3, 1, 0.6, ${tileOpacity})`,
+    color: {
+      conditions: [
+        [
+          `\${feature["${type}"]} === null || \${feature["${type}"]} === undefined`,
+          `color('transparent')`,
+        ],
+        [
+          'true',
+          `hsla((1.0 - log(clamp(\${feature["${type}"]}, 1.0, 100.0)) / log(100.0)) * 2.0 / 3.0, 1.0, 0.6, ${tileOpacity})`,
+        ],
+      ],
+    },
   });
 
 export default WithAuthGuard(CurrentWeatherViewer);
