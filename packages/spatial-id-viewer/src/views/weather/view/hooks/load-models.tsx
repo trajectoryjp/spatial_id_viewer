@@ -121,14 +121,14 @@ export const createWeatherMap = (
             id: objectId,
             startTime: definition.currentWeather.startTime,
             endTime: definition.currentWeather.endTime,
-            'windDirection (degree)': definition.currentWeather.windDirection ?? 0,
-            'windSpeed (knot)': definition.currentWeather.windSpeed ?? 0,
-            'cloudRate (%)': definition.currentWeather.cloudRate ?? 0,
-            'temperature (°C)': definition.currentWeather.temperature ?? 0,
-            'dewPoint (°C)': definition.currentWeather.dewPoint ?? 0,
-            'pressure (hPa)': definition.currentWeather.pressure ?? 0,
-            'precipitation (mm/h)': definition.currentWeather.precipitation ?? 0,
-            'visibility (km)': definition.currentWeather.visibility ?? 0,
+            'windDirection (degree)': definition.currentWeather.windDirection,
+            'windSpeed (knot)': definition.currentWeather.windSpeed,
+            'cloudRate (%)': definition.currentWeather.cloudRate,
+            'temperature (°C)': definition.currentWeather.temperature,
+            'dewPoint (°C)': definition.currentWeather.dewPoint,
+            'pressure (hPa)': definition.currentWeather.pressure,
+            'precipitation (mm/h)': definition.currentWeather.precipitation,
+            'visibility (km)': definition.currentWeather.visibility,
           })
         );
       } else {
@@ -138,10 +138,10 @@ export const createWeatherMap = (
             id: objectId,
             startTime: definition.forecast.startTime,
             endTime: definition.forecast.endTime,
-            'windDirection (degree)': definition.forecast.windDirection ?? 0,
-            'windSpeed (knot)': definition.forecast.windSpeed ?? 0,
-            'cloudRate (%)': definition.forecast.cloudRate ?? 0,
-            'precipitation (mm/h)': definition.forecast.precipitation ?? 0,
+            'windDirection (degree)': definition.forecast.windDirection,
+            'windSpeed (knot)': definition.forecast.windSpeed,
+            'cloudRate (%)': definition.forecast.cloudRate,
+            'precipitation (mm/h)': definition.forecast.precipitation,
           })
         );
       }
