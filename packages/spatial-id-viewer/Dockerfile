@@ -20,7 +20,7 @@ RUN yarn
 # ビルド
 COPY . .
 WORKDIR /app/packages/spatial-id-viewer
-RUN yarn build && yarn export
+RUN yarn build:prod --no-lint && yarn export
 
 # ダイナミックルーティングに必要なファイルのみに絞る
 WORKDIR /app/packages/spatial-id-viewer/out

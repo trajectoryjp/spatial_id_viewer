@@ -1,8 +1,8 @@
 {
   "name": "spatial-id-svc-base",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "main": "src/index.ts",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "private": true,
   "sideEffects": false,
   "devDependencies": {

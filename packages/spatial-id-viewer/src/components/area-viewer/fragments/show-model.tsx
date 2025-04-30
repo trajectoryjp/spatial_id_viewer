@@ -1,6 +1,6 @@
 import { Cartesian3, Rectangle } from 'cesium';
 import { Button, TextInput } from 'flowbite-react';
-import { memo, useState } from 'react';
+import { memo, ReactNode, useState } from 'react';
 import { useUpdateEffect } from 'react-use';
 import { useStore } from 'zustand';
 import { shallow } from 'zustand/shallow';
@@ -9,7 +9,7 @@ import { CuboidCollection } from 'spatial-id-converter';
 
 import { Pages, useStoreApi } from '#app/components/area-viewer/store';
 import { NavigationButtons } from '#app/components/navigation';
-import { warnIfTokenExpired } from '#app/utils/warn-if-token-expired';
+import { setCustomError } from '#app/utils/set-custom-error';
 
 // カメラ移動時の高さ
 const CAMERA_HEIGHT = 5000;
@@ -21,8 +21,12 @@ const States = {
 } as const;
 type States = (typeof States)[keyof typeof States];
 
+export interface ShowModelFragmentProps {
+  children?: ReactNode;
+}
+
 /** 単数取得系 API を呼び、モデルを 1 つ表示させる画面 */
-export const ShowModelFragment = memo(() => {
+export const ShowModelFragment = memo(({ children }: ShowModelFragmentProps) => {
   const store = useStoreApi();
   const featureName = useStore(store, (s) => s.featureName);
   const featureIdName = useStore(store, (s) => s.featureIdName);
@@ -39,6 +43,7 @@ export const ShowModelFragment = memo(() => {
   const [state, setState] = useState<States>(States.Input);
   const [loading, setLoading] = useState(false);
   const [id, setId] = useState('');
+  const [error, setError] = useState('');
 
   // Promise 外でエラー発生の場合のエラーハンドリング
   useUpdateEffect(() => {
@@ -48,9 +53,28 @@ export const ShowModelFragment = memo(() => {
     }
 
     console.error(errorOutsidePromise);
-    warnIfTokenExpired(errorOutsidePromise);
+    setCustomError(errorOutsidePromise);
     setState(States.Errored);
   }, [errorOutsidePromise]);
+
+  const validateInt64 = (value: string) => {
+    const int64Min = BigInt('-9223372036854775808');
+    const int64Max = BigInt('9223372036854775807');
+    const numericValue = BigInt(value);
+
+    if (numericValue < int64Min || numericValue > int64Max) {
+      return '入力がint64の範囲外です。';
+    }
+
+    return '';
+  };
+
+  const onChangeHandler = (ev: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = ev.target.value;
+    setId(inputValue);
+    const validationMessage = validateInt64(inputValue);
+    setError(validationMessage);
+  };
 
   const onCancelButtonClick = () => {
     update((s) => (s.page = Pages.SelectFunction));
@@ -67,7 +91,7 @@ export const ShowModelFragment = memo(() => {
       await deleteModel(id);
     } catch (e) {
       console.error(e);
-      warnIfTokenExpired(e);
+      setCustomError(e);
       setState(States.Errored);
       return;
     } finally {
@@ -83,7 +107,7 @@ export const ShowModelFragment = memo(() => {
       await loadModel(id);
     } catch (e) {
       console.error(e);
-      warnIfTokenExpired(e);
+      setCustomError(e);
       setState(States.Errored);
       return;
     } finally {
@@ -118,12 +142,13 @@ export const ShowModelFragment = memo(() => {
           <p>取得する{featureIdName ?? featureName}の ID を入力してください</p>
 
           <TextInput
-            type="text"
+            type="number"
             required={true}
             value={id}
-            onChange={(ev) => setId(ev.target.value)}
+            onChange={onChangeHandler}
             disabled={loading}
           />
+          {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
 
           <NavigationButtons>
             {isFunctionSelectable && (
@@ -131,7 +156,7 @@ export const ShowModelFragment = memo(() => {
                 戻る
               </Button>
             )}
-            <Button onClick={onLoadButtonClick} disabled={loading}>
+            <Button onClick={onLoadButtonClick} disabled={loading || !!error}>
               取得する
             </Button>
           </NavigationButtons>
@@ -142,6 +167,7 @@ export const ShowModelFragment = memo(() => {
           <p>
             {featureName} {id} を表示しています
           </p>
+          {children}
           <NavigationButtons>
             <Button color="dark" onClick={onBackButtonClick} disabled={loading}>
               戻る

@@ -1,18 +1,21 @@
-import { castDraft, Draft } from 'immer';
+import { castDraft } from 'immer';
+import { WritableDraft } from 'immer/dist/internal';
 import { useCallback, useMemo } from 'react';
 import { useLatest } from 'react-use';
 
-import { CuboidCollection, SpatialId } from 'spatial-id-converter';
+import { CuboidCollection } from 'spatial-id-converter';
 
 import { IStore, ModelControllers } from '#app/components/area-viewer';
+import { DisplayDetails } from '#app/components/area-viewer/interface';
 
 export interface CreateUseModelsProps<
   Metadata extends Record<string, unknown> = Record<string, never>
 > {
   /** ID を指定してモデルを 1 つ返す */
-  loadModel?: (id: string) => Promise<CuboidCollection<Metadata>>;
+
+  loadModel: (id: string) => AsyncGenerator<CuboidCollection<Metadata>>;
   /** 空間 ID で範囲を取得してモデルを複数返す */
-  loadModels?: (bbox: SpatialId) => Promise<Map<string, CuboidCollection<Metadata>>>;
+  loadModels?: (bbox: DisplayDetails) => AsyncGenerator<Map<string, CuboidCollection<Metadata>>>;
   /** ID を指定してモデルを削除する */
   deleteModel?: (id: string) => Promise<void>;
   /** モデルがアンロードされる際のフック */
@@ -35,15 +38,31 @@ export const createUseModels = <Metadata extends Record<string, unknown> = Recor
     const replaceModels = useLatest(store.replaceModels);
 
     const loadModel = useCallback(async (id: string) => {
-      const model = await loadModelImpl.current(id);
-      replaceModels.current(
-        () => new Map<string, Draft<CuboidCollection<any>>>([[id, castDraft(model)]])
-      );
+      for await (const model of loadModelImpl.current(id)) {
+        replaceModels.current((prevModels) => {
+          const newModels = new Map(prevModels);
+
+          const mutableModel = castDraft(model) as WritableDraft<CuboidCollection<any>>;
+
+          newModels.set(id, mutableModel);
+          return newModels;
+        });
+      }
     }, []);
 
-    const loadModels = useCallback(async (bbox: SpatialId) => {
-      const models: Map<string, CuboidCollection<any>> = await loadModelsImpl.current(bbox);
-      replaceModels.current(() => castDraft(models));
+    const loadModels = useCallback(async (bbox: DisplayDetails) => {
+      for await (const models of loadModelsImpl.current(bbox)) {
+        replaceModels.current((prevModels) => {
+          const newModels = new Map(prevModels); // Clone previous state
+
+          for (const [key, value] of models.entries()) {
+            const mutableModel = castDraft(value) as WritableDraft<CuboidCollection<any>>;
+            newModels.set(key, mutableModel); // Ensure mutable draft
+          }
+
+          return newModels;
+        });
+      }
     }, []);
 
     const deleteModel = useCallback(async (id: string) => {

@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  backend:
+    image: trajectoryjp/ouranos_gex_spatial_id_playground:api-latest
+    container_name: spid-viewer-backend
+    ports:
+      - '3000:3000'
+    environment:
+      - APP_ENV=dev
+      - APP_PORT=3000
+    networks:
+      - spid-network
+    restart: on-failure
+
+  frontend:
+    image: trajectoryjp/ouranos_gex_spatial_id_playground:spatial-id-viewer-latest
+    container_name: spid-viewer-frontend
+    ports:
+      - '4200:8080'
+    depends_on:
+      - backend
+    networks:
+      - spid-network
+    restart: on-failure
+
+networks:
+  spid-network:
+    driver: bridge

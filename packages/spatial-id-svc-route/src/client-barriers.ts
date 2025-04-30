@@ -20,6 +20,86 @@ export interface Barrier {
   status: StreamStatus;
 }
 
+export interface BarrierDefinitionVoxel {
+  id: {
+    ID: string;
+  };
+  vacant?: boolean;
+}
+
+export interface terrainBuildingDefinition {
+  reference: string;
+  voxelValues: BarrierDefinitionVoxel[];
+}
+
+export interface restrictedAreaDefinition {
+  reference: string;
+  type: string;
+  voxelValues: BarrierDefinitionVoxel[];
+}
+
+export interface emergencyAreaDefinition {
+  reference: string;
+  voxelValues: EmergencyAreaVoxels[];
+}
+
+export interface EmergencyAreaVoxels {
+  id: {
+    ID: string;
+  };
+  vacant: boolean;
+}
+
+export interface reservationTime {
+  period: {
+    startTime: string;
+    endTime: string;
+  };
+  occupation: string;
+  reserveId: string;
+}
+
+export interface reservedAreaDefinition {
+  ownerId: string;
+  reservationTime: reservationTime;
+  voxelValues: reserveAreaVoxels[];
+}
+
+export interface reserveAreaVoxels {
+  id: {
+    ID: string;
+  };
+  reservationTime: reservationTime;
+}
+
+export interface SpatialDefinition {
+  objectId?: string;
+  terrain?: terrainBuildingDefinition;
+  building?: terrainBuildingDefinition;
+  restrictedArea?: restrictedAreaDefinition;
+  emergencyArea?: emergencyAreaDefinition;
+  reserveArea?: reservedAreaDefinition;
+  channel?: any;
+  overlayArea?: any;
+  weather?: any;
+  weatherForecast?: any;
+  microwave?: any;
+  groundRisk?: any;
+  ariRisk?: any;
+}
+
+export interface SpatialDefinitions {
+  objects: SpatialDefinition[];
+}
+
+export interface BarrierNew {
+  overwrite: boolean;
+  object: SpatialDefinition;
+}
+
+export interface BarrierSpatial {
+  result: SpatialDefinition;
+}
 export interface PrivateBarrier {
   id: string;
   barrierDefinitions: BarrierDefinition[];
@@ -31,6 +111,11 @@ export interface GetBarriersRequest {
   boundary: SpatialIdentification;
   onlyOwnedBarriers: boolean;
   hasSpatialId: boolean;
+}
+
+export interface GetTerrainBarriersRequest {
+  figure: SpatialFigure;
+  requestType: string[];
 }
 
 export interface GetBarriersResponse {
@@ -46,14 +131,69 @@ export interface GetBarrierResponse {
   barrierDefinitions: BarrierDefinition[];
   status: StreamStatus;
 }
+export interface GetBarrierResponseNew extends SpatialDefinition {
+  responseHeader?: CommonResponseHeader;
+}
 
+export interface GetBarriersResponseNew extends SpatialDefinitions {
+  responseHeader?: CommonResponseHeader;
+}
 export interface IdResponse {
   id: string;
+}
+
+interface successResponse {
+  objectId: string;
+  error: string;
+}
+
+interface ErrorDetails {
+  '@type': string;
+  property1: any;
+  property2: any;
+}
+
+interface ErrorResponse {
+  code: number;
+  message: string;
+  details: ErrorDetails[];
 }
 
 export interface GetPrivateBarriersRequest {
   boundary: SpatialIdentification;
   hasSpatialId: boolean;
+}
+
+export interface SpatialFigure {
+  identification: {
+    ID: string;
+  };
+}
+// export interface SpatialFigure {
+//   identification: {
+//     ID: string;
+//   };
+//   tube: {
+//     start: {
+//       latitude: number;
+//       longitude: number;
+//       altitude: number;
+//       altitudeAttribute: string;
+//     };
+//     end: {
+//       latitude: number;
+//       longitude: number;
+//       altitude: number;
+//       altitudeAttribute: string;
+//     };
+//     radian: number;
+//   };
+//   polygon: any;
+// }
+
+export interface GetBuildingBarriersRequest {
+  figure: SpatialFigure;
+  requestType: string[];
 }
 
 export interface GetPrivateBarriersResponse {
@@ -73,7 +213,7 @@ export interface GetPrivateBarrierResponse {
 export interface GetBarriersParams {
   baseUrl: string;
   authInfo: AuthInfo;
-  payload: GetBarriersRequest;
+  payload: GetTerrainBarriersRequest;
   abortSignal?: AbortSignal;
 }
 
@@ -84,14 +224,21 @@ export const getBarriers = async function* ({
   payload,
   abortSignal,
 }: GetBarriersParams) {
-  for await (const chunk of fetchJsonStream<GetBarrierResponse>({
+  // for await (const chunk of fetchJsonStream<GetBarrierResponse>({
+  let objectId = '0';
+  for await (const chunk of fetchJsonStream<GetBarriersResponseNew>({
     method: 'POST',
     baseUrl,
-    path: '/route_service/barriers_list',
+    path: '/uas/api/airmobility/v3/get-value',
     authInfo,
     payload,
     abortSignal,
   })) {
+    if (chunk?.result?.objects?.[0]?.objectId !== '0') {
+      objectId = chunk?.result?.objects[0]?.objectId;
+      continue;
+    }
+    chunk.result.objects[0].objectId = objectId;
     yield chunk;
   }
 };
@@ -110,13 +257,20 @@ export const getBarrier = async function* ({
   id,
   abortSignal,
 }: GetBarrierParams) {
-  for await (const chunk of fetchJsonStream<GetBarrierResponse>({
-    method: 'GET',
+  let objectId = '0';
+  for await (const chunk of fetchJsonStream<GetBarrierResponseNew>({
+    method: 'POST',
     baseUrl,
-    path: `/route_service/barriers/${encodeURIComponent(id)}`,
+    path: '/uas/api/airmobility/v3/get-object',
     authInfo,
+    payload: { objectId: id },
     abortSignal,
   })) {
+    if (chunk.result.objectId !== '0') {
+      objectId = chunk.result.objectId;
+      continue;
+    }
+    chunk.result.objectId = objectId;
     yield chunk;
   }
 };
@@ -124,7 +278,8 @@ export const getBarrier = async function* ({
 export interface CreateBarrierParams {
   baseUrl: string;
   authInfo: AuthInfo;
-  payload: Barrier;
+  // payload: Barrier;
+  payload: BarrierNew;
   abortSignal?: AbortSignal;
 }
 
@@ -135,16 +290,17 @@ export const createBarrier = async ({
   payload,
   abortSignal,
 }: CreateBarrierParams) => {
-  const resp = await fetchRawJson<IdResponse>({
+  const resp = await fetchRawJson<successResponse | ErrorResponse>({
     method: 'POST',
     baseUrl,
-    path: '/route_service/barriers',
+    // path: '/route_service/barriers',
+    path: '/uas/api/airmobility/v3/put-object',
     authInfo,
     payload,
     abortSignal,
   });
-  if (resp.id === '0') {
-    throw new ApiResponseError('failed to create: returned id is 0');
+  if ('code' in resp) {
+    throw new ApiResponseError('failed to create: error occured with code ' + resp.code);
   }
   return resp;
 };
@@ -164,10 +320,11 @@ export const deleteBarrier = async ({
   abortSignal,
 }: DeleteBarrierParams) => {
   await fetchJson({
-    method: 'DELETE',
+    method: 'POST',
     baseUrl,
-    path: `/route_service/barriers/${encodeURIComponent(id)}`,
+    path: `/uas/api/airmobility/v3/delete-object`,
     authInfo,
+    payload: { objectId: id },
     abortSignal,
   });
 };
@@ -175,7 +332,7 @@ export const deleteBarrier = async ({
 export interface GetPrivateBarriersParams {
   baseUrl: string;
   authInfo: AuthInfo;
-  payload: GetPrivateBarriersRequest;
+  payload: GetBuildingBarriersRequest;
   abortSignal?: AbortSignal;
 }
 
@@ -186,14 +343,20 @@ export const getPrivateBarriers = async function* ({
   payload,
   abortSignal,
 }: GetPrivateBarriersParams) {
-  for await (const chunk of fetchJsonStream<GetPrivateBarriersResponse>({
+  let objectId = '0';
+  for await (const chunk of fetchJsonStream<GetBarriersResponseNew>({
     method: 'POST',
     baseUrl,
-    path: '/route_service/private_barriers_list',
+    path: '/uas/api/airmobility/v3/get-value',
     authInfo,
     payload,
     abortSignal,
   })) {
+    if (chunk?.result?.objects?.[0]?.objectId !== '0') {
+      objectId = chunk?.result?.objects[0]?.objectId;
+      continue;
+    }
+    chunk.result.objects[0].objectId = objectId;
     yield chunk;
   }
 };
@@ -212,13 +375,20 @@ export const getPrivateBarrier = async function* ({
   id,
   abortSignal,
 }: GetPrivateBarrierParams) {
-  for await (const chunk of fetchJsonStream<GetPrivateBarrierResponse>({
-    method: 'GET',
+  let objectId = '0';
+  for await (const chunk of fetchJsonStream<GetBarrierResponseNew>({
+    method: 'POST',
     baseUrl,
-    path: `/route_service/private_barriers/${encodeURIComponent(id)}`,
+    path: `/uas/api/airmobility/v3/get-object`,
     authInfo,
+    payload: { objectId: id },
     abortSignal,
   })) {
+    if (chunk.result.objectId !== '0') {
+      objectId = chunk.result.objectId;
+      continue;
+    }
+    chunk.result.objectId = objectId;
     yield chunk;
   }
 };
@@ -226,27 +396,28 @@ export const getPrivateBarrier = async function* ({
 export interface CreatePrivateBarrierParams {
   baseUrl: string;
   authInfo: AuthInfo;
-  payload: PrivateBarrier;
+  // payload: PrivateBarrier;
+  payload: BarrierNew;
   abortSignal?: AbortSignal;
 }
 
 /** プライベートバリアを生成する */
-export const createPrivateBarrier = async ({
+export const createBuildingBarrier = async ({
   baseUrl,
   authInfo,
   payload,
   abortSignal,
 }: CreatePrivateBarrierParams) => {
-  const resp = await fetchRawJson<IdResponse>({
+  const resp = await fetchRawJson<successResponse | ErrorResponse>({
     method: 'POST',
     baseUrl,
-    path: '/route_service/private_barriers',
+    path: '/uas/api/airmobility/v3/put-object',
     authInfo,
     payload,
     abortSignal,
   });
-  if (resp.id === '0') {
-    throw new ApiResponseError('failed to create: returned id is 0');
+  if ('code' in resp) {
+    throw new ApiResponseError('failed to create: error occured with code ' + resp.code);
   }
   return resp;
 };

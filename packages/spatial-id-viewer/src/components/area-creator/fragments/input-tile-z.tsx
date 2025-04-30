@@ -7,6 +7,7 @@ import { Pages, useStoreApi } from '#app/components/area-creator/store';
 import { NavigationButtons } from '#app/components/navigation';
 import { replaceNaN } from '#app/utils/replace-nan';
 
+const MIN_TILE_SIZE = 12;
 /** タイルサイズを入力する画面 */
 export const InputTileZFragment = memo(() => {
   const store = useStoreApi();
@@ -37,7 +38,8 @@ export const InputTileZFragment = memo(() => {
   };
 
   const onTileZChange = (ev: ChangeEvent<HTMLInputElement>) => {
-    setTileZ(replaceNaN(ev.target.valueAsNumber, 0));
+    const value = Math.max(MIN_TILE_SIZE, replaceNaN(ev.target.valueAsNumber, 0));
+    setTileZ(value);
     setDirty(true);
   };
 
@@ -59,7 +61,7 @@ export const InputTileZFragment = memo(() => {
 
   return (
     <>
-      <p>タイルサイズを選択してください</p>
+      <p>矢印キーでタイルのサイズを選択してください</p>
       <TextInput
         type="number"
         required={true}
@@ -67,6 +69,7 @@ export const InputTileZFragment = memo(() => {
         onChange={onTileZChange}
         min={12}
         max={22}
+        onKeyDown={(e) => e.preventDefault()}
       />
       <NavigationButtons>
         <Button color="dark" onClick={onBackButtonClick}>

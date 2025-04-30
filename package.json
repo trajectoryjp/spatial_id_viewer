@@ -1,14 +1,16 @@
 {
   "name": "spid_view",
-  "version": "0.1.0",
-  "license": "UNLICENSED",
+  "version": "2.0.0",
+  "license": "MIT",
   "private": true,
   "packageManager": "yarn@3.5.0",
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "build": "yarn workspace spatial-id-viewer run build",
+    "build:local": "yarn workspace spatial-id-viewer run build:local",
+    "build:dev": "yarn workspace spatial-id-viewer run build:dev",
+    "build:prod": "yarn workspace spatial-id-viewer run build:prod",
     "dev": "yarn workspace spatial-id-viewer run dev",
     "export": "yarn workspace spatial-id-viewer run export",
     "examples": "yarn exec http-server"
@@ -31,6 +33,11 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "typescript": "5.0.2",
-    "webpack": "5.76.2"
+    "webpack": "5.76.2",
+    "dompurify": "^2.5.4",
+    "semver": "^7.6.3",
+    "braces": "^3.0.3",
+    "fast-loops": "^1.1.4",
+    "protobufjs": "^7.4.0"
   }
 }

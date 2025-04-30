@@ -1,12 +1,14 @@
 {
   "name": "spatial-id-viewer",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "main": "index.js",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "private": true,
   "scripts": {
-    "build": "next build",
-    "dev": "next dev",
+    "build:local": "dotenv -e .env.local next build",
+    "build:dev": "dotenv -e .env.dev next build",
+    "build:prod": "dotenv -e .env.prod next build",
+    "dev": "dotenv -e .env.local next dev",
     "export": "next export"
   },
   "devDependencies": {
@@ -22,6 +24,7 @@
     "copy-webpack-plugin": "^11.0.0",
     "core-js": "^3.29.1",
     "css-loader": "^6.7.3",
+    "dotenv-cli": "^7.4.2",
     "html-webpack-plugin": "^5.5.0",
     "object-assign": "^4.1.1",
     "postcss": "^8.4.20",
@@ -37,7 +40,7 @@
     "cesium": "^1.103.0",
     "deep-equal": "^2.2.0",
     "flowbite": "^1.6.4",
-    "flowbite-react": "^0.4.2",
+    "flowbite-react": "^0.7.2",
     "immer": "^9.0.19",
     "is-promise": "^4.0.0",
     "next": "^13.2.4",

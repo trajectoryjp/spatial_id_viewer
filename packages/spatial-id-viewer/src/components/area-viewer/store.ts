@@ -15,6 +15,14 @@ export const Pages = {
 } as const;
 export type Pages = (typeof Pages)[keyof typeof Pages];
 
+export const PagesAirSpace = {
+  SelectFunction: 0,
+  ShowModels: 1,
+  ShowModelStream: 2,
+};
+
+export type PagesAirSpace = (typeof PagesAirSpace)[keyof typeof PagesAirSpace];
+
 /** Cesium ビューアー関連の機能 */
 export interface ViewerControllers {
   /** 現在表示されている範囲を Rectangle として取得 */
@@ -32,6 +40,9 @@ export interface IStore<Metadata extends Record<string, unknown> = Record<string
   /** models を書き換える際に使用する関数 */
   replaceModels: StorePartialReplacer<Map<string, Draft<CuboidCollection<Metadata>>>>;
   /** Cesium ビューアー関連の機能 */
+  replaceOutOfSpaceModels?: StorePartialReplacer<Map<string, Draft<CuboidCollection<Metadata>>>>;
+  replaceFlyableSpaceModels?: StorePartialReplacer<Map<string, Draft<CuboidCollection<Metadata>>>>;
+  replaceOccupiedSpaceModels?: StorePartialReplacer<Map<string, Draft<CuboidCollection<Metadata>>>>;
   viewerCtrls: ViewerControllers;
 }
 
@@ -41,13 +52,20 @@ export class Store<Metadata extends Record<string, unknown> = Record<string, nev
   [immerable] = true;
 
   page = 0 as Pages;
+  pageAirSpace = 0 as PagesAirSpace;
 
   featureName: string;
   featureIdName: string;
   models: Map<string, CuboidCollection<any>> = new Map();
+  outOfSpaceModels: Map<string, CuboidCollection<any>> = new Map();
+  flyableSpaceModels: Map<string, CuboidCollection<any>> = new Map();
+  occupiedSpaceModels: Map<string, CuboidCollection<any>> = new Map();
   modelCtrls: ModelControllers;
   selectedCtrls: ReturnType<typeof useSelected3DTileFeature>;
   viewerCtrls: ViewerControllers;
+  startTime = 0;
+  endTime = 253402300799;
+  airSpaceType = 0;
 
   constructor(
     private readonly set: StoreApi<Store>['setState'],
@@ -64,9 +82,41 @@ export class Store<Metadata extends Record<string, unknown> = Record<string, nev
     (s, v) => (s.models = v)
   );
 
+  readonly replaceOutOfSpaceModels = createStoreUpdater(
+    this.set,
+    this.get,
+    (s) => s.outOfSpaceModels,
+    (s, v) => (s.outOfSpaceModels = v)
+  );
+
+  readonly replaceFlyableSpaceModels = createStoreUpdater(
+    this.set,
+    this.get,
+    (s) => s.flyableSpaceModels,
+    (s, v) => (s.flyableSpaceModels = v)
+  );
+
+  readonly replaceOccupiedSpaceModels = createStoreUpdater(
+    this.set,
+    this.get,
+    (s) => s.occupiedSpaceModels,
+    (s, v) => (s.occupiedSpaceModels = v)
+  );
+
+  readonly resetAllModels = () => {
+    this.replaceModels(() => new Map());
+    this.replaceOutOfSpaceModels(() => new Map());
+    this.replaceFlyableSpaceModels(() => new Map());
+    this.replaceOccupiedSpaceModels(() => new Map());
+  };
+
   readonly isFunctionSelectable = () => {
     const self = this.get();
     return !!(self.modelCtrls.loadModel && self.modelCtrls.loadModels);
+  };
+  readonly isAirSpaceSelectable = () => {
+    const self = this.get();
+    return !!(self.modelCtrls.loadAirSpaceModels && self.modelCtrls.loadAirSpaceModelsStream);
   };
 }
 

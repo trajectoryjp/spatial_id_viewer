@@ -11,7 +11,15 @@ import { replaceNaN } from '#app/utils/replace-nan';
 export const InputTileFFragment = memo(() => {
   const store = useStoreApi();
   const nextPage = useStore(store, (s) =>
-    s.areaAdditionalInfoFragment ? Pages.InputAreaSpecificInfo : Pages.SelectAddOrSend
+    s.areaAdditionalInfoFragment
+      ? Pages.InputAreaSpecificInfo
+      : s.currentWeatherInfoFragment
+      ? Pages.InputCurrentWeatherInfo
+      : s.weatherForecastInfoFragment
+      ? Pages.InputWeatherForecastInfo
+      : s.rsiInfoFragment
+      ? Pages.InputRSI
+      : Pages.SelectAddOrSend
   );
   const currentArea = useStore(store, (s) => s.areas.current);
   const update = useStore(store, (s) => s.update);

@@ -2,7 +2,12 @@ import Head from 'next/head';
 import { useCallback } from 'react';
 import { useLatest } from 'react-use';
 
-import { createReservedArea, CreateReservedAreaRequest } from 'spatial-id-svc-area';
+import {
+  CreateEmergencyAreaRequest,
+  createReservedArea,
+  CreateReservedAreaRequest,
+  EmergencyAreaVoxels,
+} from 'spatial-id-svc-area';
 import { SpatialIdentification } from 'spatial-id-svc-common';
 
 import { AreaCreator, IAreas } from '#app/components/area-creator';
@@ -19,23 +24,27 @@ const useRegister = () => {
 
   const register = useCallback(async (areas: IAreas<WholeAreaInfo, never>) => {
     const payload = {
-      reservedArea: {
-        id: '0',
-        spatialIdentifications: areas.data
-          .map((area) =>
-            area.spatialIds.map((spatialId) => {
-              return {
-                ID: spatialId,
-              } as SpatialIdentification;
-            })
-          )
-          .flat(),
-        startTime: dateToStringUnixTime(areas.wholeAreaInfo.startTime),
-        endTime: dateToStringUnixTime(areas.wholeAreaInfo.endTime),
+      overwrite: false,
+      object: {
+        emergencyArea: {
+          reference: 'EmergencyArea',
+          voxelValues: areas.data
+            .map((area) =>
+              area.spatialIds.map((spatialId) => {
+                return {
+                  id: {
+                    ID: spatialId,
+                  },
+                  vacant: true,
+                } as EmergencyAreaVoxels;
+              })
+            )
+            .flat(),
+        },
       },
-    } as CreateReservedAreaRequest;
+    } as CreateEmergencyAreaRequest;
 
-    await createReservedArea({ baseUrl: apiBaseUrl, authInfo: authInfo.current, payload });
+    return await createReservedArea({ baseUrl: apiBaseUrl, authInfo: authInfo.current, payload });
   }, []);
 
   return register;
@@ -47,11 +56,11 @@ const ReservedAreaCreator = () => {
   return (
     <>
       <Head>
-        <title>飛行エリア予約生成</title>
+        <title>緊急エリア予約生成</title>
       </Head>
       <AreaCreator<WholeAreaInfo, never>
         register={register}
-        wholeAreaInfoFragment={WholeAreaInfoFragment}
+        // wholeAreaInfoFragment={WholeAreaInfoFragment}
       />
     </>
   );

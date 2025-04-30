@@ -7,8 +7,11 @@ import {
   ApiCommonStatusError,
   ApiDomError,
   ApiHttpStatusError,
+  ApiNotFoundError,
   ApiResponseError,
+  ApiServiceError,
   ApiStreamError,
+  InvalidRequestError,
 } from './error';
 import { AuthInfo, HttpMethod, StreamResponse, WithCommonResponseHeader } from './types';
 
@@ -61,6 +64,20 @@ const doFetch = async (params: FetchJsonParams) => {
   if (resp.status === 401) {
     throw new ApiAuthError('failed to authenticate: token might be invalid');
   }
+  if (resp.status === 404) {
+    throw new ApiNotFoundError('The resource could not be found.');
+  }
+  if (resp.status === 503) {
+    throw new ApiServiceError('Unable to read from server');
+  }
+
+  if (resp.status === 400) {
+    const res = await resp.json();
+    if (res.code != undefined && res.code == 3) {
+      throw new InvalidRequestError('invalid arguments provided');
+    }
+    throw new ApiHttpStatusError('failed to fetch response: invalid http status code', resp.status);
+  }
   if (!resp.ok) {
     throw new ApiHttpStatusError('failed to fetch response: invalid http status code', resp.status);
   }
@@ -108,7 +125,7 @@ export const fetchRawJsonStream = async function* <T>(params: FetchJsonParams) {
       throw new ApiResponseError('failed to parse as json');
     }
 
-    if (parsed.error !== undefined) {
+    if (parsed.error?.code && parsed.error.code !== 0) {
       throw new ApiStreamError('response has an error', parsed.error);
     }
     yield parsed;
@@ -128,13 +145,14 @@ export const fetchJson = async <T extends WithCommonResponseHeader = WithCommonR
 
   let status: number;
   try {
-    status = resp.responseHeader.status;
+    status = resp.responseHeader?.status;
   } catch (e) {
     throw new ApiResponseError('failed to get resp.responseHeader.status');
   }
-
-  if (status !== 0) {
-    throw new ApiCommonStatusError(`invalid status: ${status}`, resp.responseHeader);
+  if (status !== undefined) {
+    if (status !== 0) {
+      throw new ApiCommonStatusError(`invalid status: ${status}`, resp.responseHeader);
+    }
   }
   return resp;
 };
@@ -151,14 +169,16 @@ export const fetchJsonStream = async function* <
   for await (const chunk of fetchRawJsonStream<T>(params)) {
     let status: number;
     try {
-      status = chunk.result.responseHeader.status;
+      status = chunk.result?.responseHeader?.status;
     } catch (e) {
       throw new ApiResponseError('failed to get chunk.result.responseHeader.status');
     }
-
-    if (status !== 0) {
-      throw new ApiCommonStatusError(`invalid status: ${status}`, chunk.result.responseHeader);
+    if (status !== undefined) {
+      if (status !== 0) {
+        throw new ApiCommonStatusError(`invalid status: ${status}`, chunk.result.responseHeader);
+      }
     }
+
     yield chunk;
   }
 };
