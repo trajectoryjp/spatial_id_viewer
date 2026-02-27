@@ -13,7 +13,10 @@
     "build:prod": "yarn workspace spatial-id-viewer run build:prod",
     "dev": "yarn workspace spatial-id-viewer run dev",
     "export": "yarn workspace spatial-id-viewer run export",
-    "examples": "yarn exec http-server"
+    "examples": "yarn exec http-server",
+    "test:e2e": "playwright test --project=chromium",
+    "test:e2e:all": "playwright test",
+    "test:e2e:update": "playwright test --project=chromium --update-snapshots"
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0",
