@@ -99,12 +99,14 @@ const MobileStrengthViewer = (props: Props) => {
 };
 const tilesetStyleFn = (tileOpacity: number, minRSI: number, maxRSI: number) => {
   return new Cesium3DTileStyle({
-    color: `hsla(
-    (1 - (clamp((\${feature["RSI (dB)"]} - ${minRSI}) / (${maxRSI} - ${minRSI}), 0, 1))) * 2/3,
-      1,
-      0.6,
-      ${tileOpacity}
-    )`,
+    color: `
+      hsla(
+        (1 - (clamp(((\${feature["RSI (dB)"]} === \${feature["RSI (dB)"]} ? \${feature["RSI (dB)"]} : ${minRSI}) - ${minRSI}) / (${maxRSI} - ${minRSI}), 0, 1))) * 2/3,
+        1,
+        0.6,
+        ${tileOpacity}
+      )
+    `,
   });
 };
 

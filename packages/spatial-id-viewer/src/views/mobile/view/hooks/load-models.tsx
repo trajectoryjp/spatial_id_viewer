@@ -24,6 +24,11 @@ interface SignalInfo extends Record<string, unknown> {
 }
 const SINGLE = 'single_model';
 const MULTIPLE = 'multiple_models';
+
+const toFiniteNumber = (value: unknown): number | null => {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
 export const useLoadModel = (type: string) => {
   const authInfo = useLatest(useAuthInfo((s) => s.authInfo));
 
@@ -95,12 +100,16 @@ export const processSignal = (area: any, type: string) => {
   const areaType = area.microwave;
   for (const spatialIdentification of areaType[type].voxelValues) {
     const spatialId = spatialIdentification.id.ID;
+    const rsi = toFiniteNumber(spatialIdentification.RSI);
+    if (rsi == null) {
+      continue;
+    }
     try {
       spatialIds.set(
         spatialId,
         SpatialId.fromString<SignalInfo>(spatialId, {
           id: areaId,
-          'RSI (dB)': spatialIdentification.RSI,
+          'RSI (dB)': rsi,
         })
       );
     } catch (e) {
@@ -140,12 +149,16 @@ export const createSignalMap = (
     if (spatialIds.has(spatialId)) {
       continue;
     }
+    const rsi = toFiniteNumber(definition.RSI);
+    if (rsi == null) {
+      continue;
+    }
     try {
       spatialIds.set(
         spatialId,
         SpatialId.fromString<SignalInfo>(spatialId, {
           id: objectId,
-          'RSI (dB)': definition.RSI,
+          'RSI (dB)': rsi,
         })
       );
     } catch (e) {
