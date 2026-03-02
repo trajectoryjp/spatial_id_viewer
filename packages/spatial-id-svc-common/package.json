@@ -1,6 +1,6 @@
 {
   "name": "spatial-id-svc-common",
-  "version": "2.0.0",
+  "version": "2.0.3",
   "main": "src/index.ts",
   "license": "MIT",
   "private": true,
