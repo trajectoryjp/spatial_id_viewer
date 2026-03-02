@@ -72,7 +72,7 @@ const doFetch = async (params: FetchJsonParams) => {
   }
 
   if (resp.status === 400) {
-    const res = await resp.json();
+    const res = (await resp.json()) as { code?: number };
     if (res.code != undefined && res.code == 3) {
       throw new InvalidRequestError('invalid arguments provided');
     }
