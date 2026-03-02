@@ -120,4 +120,14 @@ export interface Cuboid<Metadata extends Record<string, unknown> = Record<string
 	/** メタデータ */
 	metadata: Metadata;
 }
+export interface Figure {
+	identification: {
+		ID: SpatialId;
+	};
+}
+export interface FigureRequest {
+	identification: {
+		ID: string;
+	};
+}
 

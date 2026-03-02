@@ -1,6 +1,6 @@
 {
   "name": "spid_view",
-  "version": "2.0.1",
+  "version": "2.0.3",
   "license": "MIT",
   "private": true,
   "packageManager": "yarn@3.5.0",
