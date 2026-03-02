@@ -1,4 +1,4 @@
-FROM node:24-bullseye AS packages
+FROM docker.io/library/node:24.14-bullseye@sha256:d83f76ec9956d35fe14221022e8b5a87a5de6fcdb4edb1187eddeb7dc80cba71 AS packages
 
 # 依存モジュールのインストール時に必要なファイルのみを取り出す
 WORKDIR /app/
@@ -9,7 +9,7 @@ RUN --mount=type=bind,target=/docker-context \
 
 # --------------------------------
 
-FROM node:24-bullseye AS build
+FROM docker.io/library/node:24.14-bullseye@sha256:d83f76ec9956d35fe14221022e8b5a87a5de6fcdb4edb1187eddeb7dc80cba71 AS build
 
 WORKDIR /app
 COPY --from=packages /app .
