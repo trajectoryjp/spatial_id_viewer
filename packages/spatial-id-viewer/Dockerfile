@@ -1,4 +1,4 @@
-FROM node:19.6.0-bullseye AS packages
+FROM node:20-bullseye AS packages
 
 # 依存モジュールのインストール時に必要なファイルのみを取り出す
 WORKDIR /app/
@@ -9,7 +9,7 @@ RUN --mount=type=bind,target=/docker-context \
 
 # --------------------------------
 
-FROM node:19.6.0-bullseye AS build
+FROM node:20-bullseye AS build
 
 WORKDIR /app
 COPY --from=packages /app .
@@ -20,7 +20,7 @@ RUN yarn
 # ビルド
 COPY . .
 WORKDIR /app/packages/spatial-id-viewer
-RUN yarn build:prod --no-lint && yarn export
+RUN yarn build:prod --no-lint
 
 # ダイナミックルーティングに必要なファイルのみに絞る
 WORKDIR /app/packages/spatial-id-viewer/out

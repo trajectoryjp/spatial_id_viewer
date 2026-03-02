@@ -13,7 +13,7 @@ const staticDir = '../public/static';
 /** @type {import('next').NextConfig} */
 module.exports = {
   reactStrictMode: false,
-  swcMinify: true,
+  output: 'export',
   poweredByHeader: false,
   webpack(config, options) {
     return Object.assign(config, {
