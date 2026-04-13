@@ -2,11 +2,11 @@ import { AuthInfo, CommonResponseHeader, StreamStatus } from 'spatial-id-svc-bas
 import { Point, SpatialIdentification } from 'spatial-id-svc-common';
 
 /** パブリックバリアを生成する */
-export declare const createBarrier: ({ baseUrl, authInfo, payload, abortSignal, }: CreateBarrierParams) => Promise<IdResponse>;
+export declare const createBarrier: ({ baseUrl, authInfo, payload, abortSignal, }: CreateBarrierParams) => Promise<successResponse>;
 /** プライベートバリアを生成する */
-export declare const createPrivateBarrier: ({ baseUrl, authInfo, payload, abortSignal, }: CreatePrivateBarrierParams) => Promise<IdResponse>;
+export declare const createBuildingBarrier: ({ baseUrl, authInfo, payload, abortSignal, }: CreatePrivateBarrierParams) => Promise<successResponse>;
 /** 予約ルートを生成する */
-export declare const createReservedRoute: ({ baseUrl, authInfo, payload, abortSignal, }: CreateReservedRouteParams) => AsyncGenerator<import("spatial-id-svc-base").StreamResponse<CreateReservedRouteResponse>, void, unknown>;
+export declare const createReservedRoute: ({ baseUrl, authInfo, payload, abortSignal, }: CreateReservedRouteParams) => Promise<successResponse>;
 /** ルートを設計する */
 export declare const createRoute: ({ baseUrl, authInfo, payload, abortSignal, }: CreateRouteParams) => AsyncGenerator<import("spatial-id-svc-base").StreamResponse<CreateRouteResponse>, void, unknown>;
 /** ID を指定してパブリックバリアを削除する */
@@ -14,23 +14,25 @@ export declare const deleteBarrier: ({ baseUrl, authInfo, id, abortSignal, }: De
 /** ID を指定してプライベートバリアを削除する */
 export declare const deletePrivateBarrier: ({ baseUrl, authInfo, id, abortSignal, }: DeletePrivateBarrierParams) => Promise<void>;
 /** ID を指定して予約ルートを削除する */
-export declare const deleteReservedRoute: ({ baseUrl, authInfo, reservedRouteId, abortSignal, }: DeleteReservedRouteParams) => Promise<void>;
+export declare const deleteReservedRoute: ({ baseUrl, authInfo, id, abortSignal, }: DeleteReservedRouteParams) => Promise<void>;
 /** 空間 ID の範囲内の機体の ID を複数取得する */
 export declare const getAircrafts: ({ baseUrl, authInfo, payload, abortSignal, }: GetAircraftsParams) => AsyncGenerator<import("spatial-id-svc-base").StreamResponse<GetAircraftsResponse>, void, unknown>;
 /** ID を指定してパブリックバリアを 1 件取得する */
-export declare const getBarrier: ({ baseUrl, authInfo, id, abortSignal, }: GetBarrierParams) => AsyncGenerator<import("spatial-id-svc-base").StreamResponse<GetBarrierResponse>, void, unknown>;
+export declare const getBarrier: ({ baseUrl, authInfo, id, abortSignal, }: GetBarrierParams) => AsyncGenerator<import("spatial-id-svc-base").StreamResponse<GetBarrierResponseNew>, void, unknown>;
 /** 空間 ID の範囲内のパブリックバリアを複数取得する */
-export declare const getBarriers: ({ baseUrl, authInfo, payload, abortSignal, }: GetBarriersParams) => AsyncGenerator<import("spatial-id-svc-base").StreamResponse<GetBarrierResponse>, void, unknown>;
+export declare const getBarriers: ({ baseUrl, authInfo, payload, abortSignal, }: GetBarriersParams) => AsyncGenerator<import("spatial-id-svc-base").StreamResponse<GetBarriersResponseNew>, void, unknown>;
+export declare const getPermittedAirSpace: ({ baseUrl, authInfo, payload, abortSignal, }: GetPermittedRoutesParams) => AsyncGenerator<import("spatial-id-svc-base").StreamResponse<GetPermittedRoutesResponse>, void, unknown>;
+export declare const getPermittedAirSpaceStream: ({ baseUrl, authInfo, payload, abortSignal, }: GetPermittedRoutesParams) => AsyncGenerator<import("spatial-id-svc-base").StreamResponse<GetPermittedRoutesResponseStream>, void, unknown>;
 /** ID を指定してプライベートバリアを 1 件取得する */
-export declare const getPrivateBarrier: ({ baseUrl, authInfo, id, abortSignal, }: GetPrivateBarrierParams) => AsyncGenerator<import("spatial-id-svc-base").StreamResponse<GetPrivateBarrierResponse>, void, unknown>;
+export declare const getPrivateBarrier: ({ baseUrl, authInfo, id, abortSignal, }: GetPrivateBarrierParams) => AsyncGenerator<import("spatial-id-svc-base").StreamResponse<GetBarrierResponseNew>, void, unknown>;
 /** 空間 ID の範囲内のプライベートバリアを取得する */
-export declare const getPrivateBarriers: ({ baseUrl, authInfo, payload, abortSignal, }: GetPrivateBarriersParams) => AsyncGenerator<import("spatial-id-svc-base").StreamResponse<GetPrivateBarriersResponse>, void, unknown>;
+export declare const getPrivateBarriers: ({ baseUrl, authInfo, payload, abortSignal, }: GetPrivateBarriersParams) => AsyncGenerator<import("spatial-id-svc-base").StreamResponse<GetBarriersResponseNew>, void, unknown>;
 /** 機体 ID を指定して予約ルート ID を複数取得する */
 export declare const getReservedId: ({ baseUrl, authInfo, aircraftId, abortSignal, }: GetReservedIdParams) => AsyncGenerator<import("spatial-id-svc-base").StreamResponse<GetReservedIdResponse>, void, unknown>;
 /** ID を指定して予約ルートを 1 件取得する */
-export declare const getReservedRoute: ({ baseUrl, authInfo, reservedRouteId, abortSignal, }: GetReservedRouteParams) => Promise<GetReservedRouteResponse>;
+export declare const getReservedRoute: ({ baseUrl, authInfo, id, abortSignal, }: GetReservedRouteParams) => AsyncGenerator<import("spatial-id-svc-base").StreamResponse<GetReservedRouteResponseV3>, void, unknown>;
 /** 空間 ID の範囲内の予約ルートを複数取得する */
-export declare const getReservedRoutes: ({ baseUrl, authInfo, payload, abortSignal, }: GetReservedRoutesParams) => AsyncGenerator<import("spatial-id-svc-base").StreamResponse<GetReservedRoutesResponse>, void, unknown>;
+export declare const getReservedRoutes: ({ baseUrl, authInfo, payload, abortSignal, }: GetReservedRoutesParamsV3) => AsyncGenerator<import("spatial-id-svc-base").StreamResponse<GetReservedRoutesResponseV3>, void, unknown>;
 export interface Barrier {
 	id: string;
 	barrierDefinitions: BarrierDefinition[];
@@ -40,22 +42,35 @@ export interface BarrierDefinition {
 	spatialIdentification: SpatialIdentification;
 	risk: number;
 }
+export interface BarrierDefinitionVoxel {
+	id: {
+		ID: string;
+	};
+	vacant?: boolean;
+}
+export interface BarrierNew {
+	overwrite: boolean;
+	object: SpatialDefinition;
+}
+export interface BarrierSpatial {
+	result: SpatialDefinition;
+}
 export interface CreateBarrierParams {
 	baseUrl: string;
 	authInfo: AuthInfo;
-	payload: Barrier;
+	payload: BarrierNew;
 	abortSignal?: AbortSignal;
 }
 export interface CreatePrivateBarrierParams {
 	baseUrl: string;
 	authInfo: AuthInfo;
-	payload: PrivateBarrier;
+	payload: BarrierNew;
 	abortSignal?: AbortSignal;
 }
 export interface CreateReservedRouteParams {
 	baseUrl: string;
 	authInfo: AuthInfo;
-	payload: CreateReservedRouteRequest;
+	payload: CreateReservedRouteRequestV3;
 	abortSignal?: AbortSignal;
 }
 export interface CreateReservedRouteRequest {
@@ -69,8 +84,12 @@ export interface CreateReservedRouteRequest {
 	uavInfo: UavInfo;
 	ignoreSpatialId: boolean;
 }
+export interface CreateReservedRouteRequestV3 {
+	overwrite: boolean;
+	object: SpatialDefinition;
+}
 export interface CreateReservedRouteResponse {
-	responseHeader: CommonResponseHeader;
+	responseHeader?: CommonResponseHeader;
 	result: RouteResponseResult;
 	status: StreamStatus;
 	reservedRouteId: string;
@@ -107,8 +126,14 @@ export interface DeletePrivateBarrierParams {
 export interface DeleteReservedRouteParams {
 	baseUrl: string;
 	authInfo: AuthInfo;
-	reservedRouteId: string;
+	id: string;
 	abortSignal?: AbortSignal;
+}
+export interface EmergencyAreaVoxels {
+	id: {
+		ID: string;
+	};
+	vacant: boolean;
 }
 export interface ErrorDef {
 	detail: string;
@@ -116,6 +141,16 @@ export interface ErrorDef {
 	noPathPaths: Path[];
 	noDataPaths: Path[];
 	unexpectedErrorPaths: Path[];
+}
+export interface ErrorDetails {
+	"@type": string;
+	property1: any;
+	property2: any;
+}
+export interface ErrorResponse {
+	code: number;
+	message: string;
+	details: ErrorDetails[];
 }
 export interface GetAircraftsParams {
 	baseUrl: string;
@@ -143,10 +178,13 @@ export interface GetBarrierResponse {
 	barrierDefinitions: BarrierDefinition[];
 	status: StreamStatus;
 }
+export interface GetBarrierResponseNew extends SpatialDefinition {
+	responseHeader?: CommonResponseHeader;
+}
 export interface GetBarriersParams {
 	baseUrl: string;
 	authInfo: AuthInfo;
-	payload: GetBarriersRequest;
+	payload: GetTerrainBarriersRequest;
 	abortSignal?: AbortSignal;
 }
 export interface GetBarriersRequest {
@@ -159,6 +197,45 @@ export interface GetBarriersResponse {
 	responseHeader: CommonResponseHeader;
 	barrierDefinitions: BarrierDefinition[];
 	status: StreamStatus;
+}
+export interface GetBarriersResponseNew extends SpatialDefinitions {
+	responseHeader?: CommonResponseHeader;
+}
+export interface GetBuildingBarriersRequest {
+	figure: SpatialFigure;
+	requestType: string[];
+}
+export interface GetPermittedRoutesParams {
+	baseUrl: string;
+	authInfo: AuthInfo;
+	payload: getPermittedAirSpaceRequest;
+	abortSignal?: AbortSignal;
+}
+export interface GetPermittedRoutesResponse {
+	responseHeader?: CommonResponseHeader;
+	outOfSpace: {
+		ID: string[];
+	};
+	flyableSpace: {
+		ID: string[];
+	};
+	error: string;
+}
+export interface GetPermittedRoutesResponseStream {
+	responseHeader?: CommonResponseHeader;
+	result: {
+		outOfSpace: {
+			ID: string[];
+		};
+		flyableSpace: {
+			ID: string[];
+		};
+		occupiedSpace: {
+			ID: string[];
+		};
+		error: string;
+	};
+	error: ErrorResponse;
 }
 export interface GetPrivateBarrierParams {
 	baseUrl: string;
@@ -175,7 +252,7 @@ export interface GetPrivateBarrierResponse {
 export interface GetPrivateBarriersParams {
 	baseUrl: string;
 	authInfo: AuthInfo;
-	payload: GetPrivateBarriersRequest;
+	payload: GetBuildingBarriersRequest;
 	abortSignal?: AbortSignal;
 }
 export interface GetPrivateBarriersRequest {
@@ -202,18 +279,28 @@ export interface GetReservedIdResponse {
 export interface GetReservedRouteParams {
 	baseUrl: string;
 	authInfo: AuthInfo;
-	reservedRouteId: string;
+	id: string;
 	abortSignal?: AbortSignal;
 }
 export interface GetReservedRouteResponse {
-	responseHeader: CommonResponseHeader;
+	responseHeader?: CommonResponseHeader;
 	reservedRouteId: string;
 	routes: Route[];
+}
+export interface GetReservedRouteResponseV3 extends SpatialDefinition {
+	responseHeader?: CommonResponseHeader;
+	error: ErrorResponse;
 }
 export interface GetReservedRoutesParams {
 	baseUrl: string;
 	authInfo: AuthInfo;
 	payload: GetReservedRoutesRequest;
+	abortSignal?: AbortSignal;
+}
+export interface GetReservedRoutesParamsV3 {
+	baseUrl: string;
+	authInfo: AuthInfo;
+	payload: GetReservedRoutesRequestV3;
 	abortSignal?: AbortSignal;
 }
 export interface GetReservedRoutesRequest {
@@ -223,11 +310,23 @@ export interface GetReservedRoutesRequest {
 	endTime: string;
 	hasRoutes: boolean;
 }
+export interface GetReservedRoutesRequestV3 {
+	figure: SpatialFigure;
+	requestType: string[];
+}
 export interface GetReservedRoutesResponse {
 	responseHeader: CommonResponseHeader;
 	reservedRouteId: string;
 	status: StreamStatus;
 	routes: Route[];
+}
+export interface GetReservedRoutesResponseV3 {
+	responseHeader?: CommonResponseHeader;
+	objects: SpatialDefinition[];
+}
+export interface GetTerrainBarriersRequest {
+	figure: SpatialFigure;
+	requestType: string[];
 }
 export interface IdResponse {
 	id: string;
@@ -252,8 +351,92 @@ export interface RouteResponseResult {
 	route?: Route;
 	Error?: ErrorDef;
 }
+export interface SpatialDefinition {
+	objectId?: string;
+	terrain?: terrainBuildingDefinition;
+	building?: terrainBuildingDefinition;
+	restrictedArea?: restrictedAreaDefinition;
+	emergencyArea?: emergencyAreaDefinition;
+	reserveArea?: reservedAreaDefinition;
+	channel?: any;
+	overlayArea?: any;
+	weather?: any;
+	weatherForecast?: any;
+	microwave?: any;
+	groundRisk?: any;
+	ariRisk?: any;
+}
+export interface SpatialDefinitions {
+	objects: SpatialDefinition[];
+}
+export interface SpatialFigure {
+	identification: {
+		ID: string;
+	};
+}
 export interface UavInfo {
 	uavSize: string;
+}
+export interface emergencyAreaDefinition {
+	reference: string;
+	voxelValues: EmergencyAreaVoxels[];
+}
+export interface getPermittedAirSpaceRequest {
+	figure: SpatialFigure;
+	period: {
+		startTime: number;
+		endTime: number;
+	};
+	includeReserveArea: boolean;
+}
+export interface reservationTime {
+	period: {
+		startTime: string;
+		endTime: string;
+	};
+	occupation: string;
+	reserveId: string;
+}
+export interface reserveAreaVoxels {
+	id: {
+		ID: string;
+	};
+	reservationTime: reservationTime;
+}
+export interface reservedAreaDefinition {
+	ownerId: string;
+	reservationTime: reservationTime;
+	voxelValues: reserveAreaVoxels[];
+}
+export interface restrictedAreaDefinition {
+	reference: string;
+	type: string;
+	voxelValues: BarrierDefinitionVoxel[];
+}
+export interface routeArea {
+	id: {
+		ID: string;
+	};
+	reservationTime: {
+		period: {
+			startTime?: Date;
+			endTime?: Date;
+		};
+		occupation: string;
+		reserveId: string;
+	};
+}
+export interface successResponse {
+	objectId: string;
+	error: string;
+}
+export interface successResponse {
+	objectId: string;
+	error: string;
+}
+export interface terrainBuildingDefinition {
+	reference: string;
+	voxelValues: BarrierDefinitionVoxel[];
 }
 export type ReservationMethod = "TRJXRecommend" | "InputWPPriority";
 

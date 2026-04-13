@@ -24,15 +24,34 @@ export declare class ApiHttpStatusError extends ApiBaseError {
 	name: string;
 	constructor(message: string, status: number, options?: ErrorOptions);
 }
+export declare class ApiNotFoundError extends ApiHttpStatusError {
+	name: string;
+	constructor(message: string, options?: ErrorOptions);
+}
 /** REST API レスポンスのペイロード関連のエラー */
 export declare class ApiResponseError extends ApiBaseError {
 	name: string;
+}
+export declare class ApiServiceError extends ApiHttpStatusError {
+	name: string;
+	constructor(message: string, options?: ErrorOptions);
 }
 /** REST API レスポンスのストリーム処理の際のエラー */
 export declare class ApiStreamError extends ApiResponseError {
 	readonly error: StreamError;
 	name: string;
 	constructor(message: string, error: StreamError, options?: ErrorOptions);
+}
+export declare class InvalidRequestError extends ApiHttpStatusError {
+	name: string;
+	constructor(message: string, options?: ErrorOptions);
+}
+export declare class ResponseTooLargeError extends Error {
+	name: string;
+}
+export declare class VoxelTypeError extends Error {
+	name: string;
+	constructor(message: string, options?: ErrorOptions);
 }
 /**
  * レスポンスペイロードに responseHeader を持つ API をコールする。
@@ -71,6 +90,7 @@ export declare const streamToArray: <T>(chunked: AsyncGenerator<T, void, unknown
 /** 認証情報オブジェクト */
 export interface AuthInfo {
 	username: string;
+	organizationID?: string;
 	token: string;
 }
 /** レスポンスペイロードの gRPC 共通レスポンスヘッダー */
@@ -98,15 +118,18 @@ export interface FetchJsonParams {
 export interface StreamError {
 	code: number;
 	message: string;
+	details?: unknown[];
 }
 /** ストリーム API のレスポンスペイロード */
 export interface StreamResponse<T> {
 	result?: T;
 	error?: StreamError;
+	outOfSpace?: T;
+	flyableSpace?: T;
 }
 /** 共通レスポンスヘッダーを持つオブジェクト */
 export interface WithCommonResponseHeader {
-	responseHeader: CommonResponseHeader;
+	responseHeader?: CommonResponseHeader;
 }
 /** HTTP メソッド */
 export type HttpMethod = "GET" | "HEAD" | "POST" | "PUT" | "DELETE" | "CONNECT" | "OPTIONS" | "TRACE" | "PATCH";
