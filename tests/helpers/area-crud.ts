@@ -8,16 +8,14 @@ export const LOAD_TIMEOUT = 60_000;
 
 /**
  * 矩形選択に使う固定座標 (初期カメラ位置: 新宿上空 5000m・ビューポート 1280x720 前提)。
- * 範囲検索は画面中央の z16 セル単位で行われるため、矩形は画面の大部分を覆う大きさにし、
- * カメラやピッキングの誤差で多少ずれても中央セルに必ず重なるようにする
- * (該当セルと重なる部分だけが検索で返り、画面中央付近に描画される)。
- * 左上の操作パネル・右上のツールバーを避けた範囲で選ぶ。
+ * 範囲検索は画面中央の z16 セル単位で行われるため、矩形は中央セルに重なる位置に描く。
+ * 矩形を大きくしすぎると、タイル Z 画面がマウント時に既定の z=20 で行う
+ * ボクセル分割が重すぎてハングするため、この大きさ (z20 で 200 タイル強) に留める。
+ * 代わりにクリック位置→地点の対応を安定させるため、選択前にカメラをホームボタンで
+ * 初期位置・初期向きへ即時移動させる (waitForCameraSettled を参照)。
  */
-const RECT_POINT_1 = { x: 450, y: 120 };
-const RECT_POINT_2 = { x: 1050, y: 650 };
-
-/** 作成時に指定するタイルのズームレベル (矩形が大きいため粗めにしてタイル数を抑える) */
-const CREATE_TILE_Z = '17';
+const RECT_POINT_1 = { x: 661, y: 507 };
+const RECT_POINT_2 = { x: 836, y: 638 };
 
 /**
  * 範囲表示のボクセルを探すグリッド走査のクリック座標 (ビューポート 1280x720 前提)。
@@ -86,14 +84,18 @@ const lonLatToEcef = (lonDeg: number, latDeg: number, height: number) => {
 const DEFAULT_CAMERA_ECEF = lonLatToEcef(139.70361, 35.69389, 5000);
 
 /**
- * ページ読み込み直後の初期カメラ飛行 (約 3 秒) が終わり、初期位置に静定するまで待つ。
- * アプリは 500ms ごとにカメラ位置を localStorage (cameraInfo) へ保存するため、
- * 連続する 2 回の読み取りが一致し、かつ初期位置の近くにいることを確認する。
- * (位置の検証が無いと、描画負荷で飛行が一時停止しただけの状態を静定と誤認し、
- *  意図しない地点にデータを作成してしまうことがある)
+ * カメラを初期位置・初期向き (新宿上空 5000m・真下向き) に確実に合わせる。
+ * ビューア右上のホームボタンは duration: 0 で即座に初期状態へ移動するため、
+ * 読み込み時のカメラ飛行アニメーションの完了を待つよりも決定的になる。
+ * その後、アプリが 500ms ごとに localStorage (cameraInfo) へ保存するカメラ位置が
+ * 初期位置と一致して安定したことを確認する。
+ * (カメラの位置・向きがずれたままクリックすると意図しない地点にデータを作成してしまう)
  */
 export const waitForCameraSettled = async (page: Page) => {
+  // ホームボタン (右上ツールバーの先頭) で初期位置・初期向きへ即時移動する
+  const homeButton = page.locator('button.cesium-button').first();
   await expect(async () => {
+    await homeButton.click();
     const before = await page.evaluate(() => localStorage.getItem('cameraInfo'));
     await page.waitForTimeout(800);
     const after = await page.evaluate(() => localStorage.getItem('cameraInfo'));
@@ -129,12 +131,11 @@ const clickCanvasUntil = async (
   }).toPass({ timeout });
 };
 
-/** 矩形の 2 点を選択し、タイル Z を指定して高度 (F) を既定値のまま確定する */
+/** 矩形の 2 点を選択し、タイル Z / 高度 (F) を既定値のまま確定する */
 const selectSimpleRectangle = async (page: Page) => {
   await expect(page.getByText('左上の地点を選択してください')).toBeVisible();
   await clickCanvasUntil(page, RECT_POINT_1, '右下の地点を選択してください');
   await clickCanvasUntil(page, RECT_POINT_2, '矢印キーでタイルのサイズを選択してください');
-  await page.getByRole('spinbutton').fill(CREATE_TILE_Z);
   await page.getByRole('button', { name: '次へ' }).click();
   // タイル数に応じてモデルの再構築 (ジオイド高さ取得など) が走るため、画面遷移は長めに待つ
   await expect(page.getByText('高度 (f の値) を入力してください')).toBeVisible({
