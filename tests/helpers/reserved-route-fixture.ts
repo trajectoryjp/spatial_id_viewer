@@ -1,3 +1,4 @@
+import { TEST_LOCATION } from './area-crud';
 /** 経度・緯度から WebMercator のタイル座標を計算する */
 const lonLatToTile = (lon: number, lat: number, z: number): { x: number; y: number } => {
   const latRad = (lat * Math.PI) / 180;
@@ -13,7 +14,7 @@ const lonLatToTile = (lon: number, lat: number, z: number): { x: number; y: numb
  * 構造は views/reserved-routes/create/index.tsx の validateSchema に合わせる
  * (アップロードした JSON がそのまま API ペイロードとして送信される)。
  *
- * - 空間 ID は初期カメラ位置 (新宿: 139.70361, 35.69389) 付近のズーム 20 のタイルにし、
+ * - 空間 ID はテスト地点 (TEST_LOCATION: 東京湾上) 付近のズーム 20 のタイルにし、
  *   範囲検索の描画確認でグリッド走査のクリックに当たる大きさ (3x3 ブロック) にする
  * - 同じタイルに予約が重なると Collision エラーになるため、
  *   位置を少しランダムにずらし、予約時間も短くして失敗ランの残骸が自然消滅するようにする
@@ -22,7 +23,7 @@ const lonLatToTile = (lon: number, lat: number, z: number): { x: number; y: numb
 export const makeReservedRouteJson = () => {
   const z = 20;
   const f = 0;
-  const { x, y } = lonLatToTile(139.70361, 35.69389, z);
+  const { x, y } = lonLatToTile(TEST_LOCATION.lon, TEST_LOCATION.lat, z);
 
   // 再実行時の衝突を避けるためのランダムオフセット (画面内に収まる範囲)
   const offsetX = Math.floor(Math.random() * 4);

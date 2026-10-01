@@ -1,4 +1,4 @@
-import { expect, Page } from '@playwright/test';
+import { expect, Page, Route } from '@playwright/test';
 
 /** 登録・取得・削除系 API の待機タイムアウト */
 export const API_TIMEOUT = 30_000;
@@ -7,32 +7,40 @@ export const API_TIMEOUT = 30_000;
 export const LOAD_TIMEOUT = 60_000;
 
 /**
- * 矩形選択に使う固定座標 (初期カメラ位置: 新宿上空 5000m・ビューポート 1280x720 前提)。
- * 範囲検索は画面中央の z16 セル単位で行われるため、矩形は中央セルに重なる位置に描く。
- * 矩形を大きくしすぎると、タイル Z 画面がマウント時に既定の z=20 で行う
- * ボクセル分割が重すぎてハングするため、この大きさ (z20 で 200 タイル強) に留める。
- * 代わりにクリック位置→地点の対応を安定させるため、選択前にカメラをホームボタンで
- * 初期位置・初期向きへ即時移動させる (waitForCameraSettled を参照)。
+ * テストデータを作成する地点 (東京湾上)。
+ * 既存データが入っていない海上にすることで、範囲検索の応答がテストで作成したデータだけになり、
+ * 既存データを拾って通ってしまうことや、残骸との衝突を避ける。
+ * 作成・表示とも localStorage の cameraInfo でこの地点の真上 5000m にカメラをプリセットする。
+ */
+export const TEST_LOCATION = { lon: 139.8, lat: 35.5 };
+
+/**
+ * 矩形選択に使う固定座標 (カメラ: TEST_LOCATION 上空 5000m 真下向き・ビューポート 1280x720 前提)。
+ * 矩形を大きくしすぎると作成画面の処理が重くなるため、この大きさ (z20 で 200 タイル強) に留める。
+ * 着地した正確な位置は get-object の保存済み空間 ID から求めるため、多少のズレは表示フェーズに影響しない。
  */
 const RECT_POINT_1 = { x: 661, y: 507 };
 const RECT_POINT_2 = { x: 836, y: 638 };
 
+/** 範囲検索 (表示範囲で検索) が最大範囲として使うズームレベル (show-models.tsx の MIN_Z) */
+const VIEW_TILE_Z = 16;
+
 /**
- * 範囲表示のボクセルを探すグリッド走査のクリック座標 (ビューポート 1280x720 前提)。
- * 作成時の矩形は固定座標なので、初期カメラで範囲表示するとボクセルは毎回
- * 画面中央やや上 (おおよそ x: 600-730, y: 270-390) の領域に描画される。
- * 描画位置のずれとボクセルの大きさ (最小 30px 程度) を考慮し、
- * その周辺を細かい刻みで走査する。可能性の高い中心から順にクリックする。
+ * 作成・表示で明示的に指定する高度 (f)。
+ * アプリは地形高さから f を自動計算するが、地形取得に失敗すると異常な f を送って登録に失敗する。
+ * テストでは自動値を使わず 0 を入力する。
+ * 作成 (z20) の f=0 は高度 0〜32m、表示 (z16) の f=0 は高度 0〜512m で、作成分を含む。
  */
-const VOXEL_SEARCH_GRID: { x: number; y: number }[] = [];
-for (let y = 200; y <= 450; y += 25) {
-  for (let x = 520; x <= 840; x += 35) {
-    VOXEL_SEARCH_GRID.push({ x, y });
-  }
+const TILE_F = 0;
+
+/** カメラ高度 (viewer/index.tsx の defaultDestination と同じ 5000m) */
+const CAMERA_HEIGHT = 5000;
+
+/** z16 のタイル座標 */
+export interface TileXY {
+  x: number;
+  y: number;
 }
-VOXEL_SEARCH_GRID.sort(
-  (a, b) => Math.hypot(a.x - 670, a.y - 330) - Math.hypot(b.x - 670, b.y - 330)
-);
 
 /** 表示・削除フェーズで必要となるデータタイプ情報 */
 export interface ViewerTarget {
@@ -42,11 +50,6 @@ export interface ViewerTarget {
   featureName: string;
   /** タブ型ページの場合のタブ名 */
   tabName?: string;
-  /**
-   * 範囲検索後のボクセル描画確認 (クリック選択) をスキップする。
-   * 範囲検索 API (get-value) がデータを返さないタイプ (オーバーレイエリア) 用。
-   */
-  skipRangeVoxelCheck?: boolean;
 }
 
 /**
@@ -61,9 +64,6 @@ export const resetCameraInfo = async (page: Page) => {
 export const selectTab = async (page: Page, tabName: string) => {
   await page.getByRole('tab', { name: tabName }).click();
 };
-
-/** 正規表現のメタ文字をエスケープする */
-const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** 経度・緯度・高さ (WGS84) を ECEF 座標へ変換する */
 const lonLatToEcef = (lonDeg: number, latDeg: number, height: number) => {
@@ -80,40 +80,176 @@ const lonLatToEcef = (lonDeg: number, latDeg: number, height: number) => {
   };
 };
 
-/** アプリの初期カメラ位置 (新宿上空 5000m) — viewer/index.tsx の defaultDestination と同じ */
-const DEFAULT_CAMERA_ECEF = lonLatToEcef(139.70361, 35.69389, 5000);
+/** WebMercator タイルの中心の経度・緯度を求める */
+const tileCenterLonLat = (tile: TileXY, z: number) => {
+  const n = 2 ** z;
+  const lon = ((tile.x + 0.5) / n) * 360 - 180;
+  const lat = (Math.atan(Math.sinh(Math.PI * (1 - (2 * (tile.y + 0.5)) / n))) * 180) / Math.PI;
+  return { lon, lat };
+};
 
 /**
- * カメラを初期位置・初期向き (新宿上空 5000m・真下向き) に確実に合わせる。
- * ビューア右上のホームボタンは duration: 0 で即座に初期状態へ移動するため、
- * 読み込み時のカメラ飛行アニメーションの完了を待つよりも決定的になる。
- * その後、アプリが 500ms ごとに localStorage (cameraInfo) へ保存するカメラ位置が
- * 初期位置と一致して安定したことを確認する。
- * (カメラの位置・向きがずれたままクリックすると意図しない地点にデータを作成してしまう)
+ * 次のページ読み込みから、カメラを指定地点の真上 5000m (真下向き) で開始させる。
+ * アプリは localStorage の cameraInfo を初期カメラ位置として使う (viewer/index.tsx の useMount)。
+ * Viewer 初期化前に書く必要があるため addInitScript を使い、page.goto の前に呼ぶ。
  */
-export const waitForCameraSettled = async (page: Page) => {
-  // ホームボタン (右上ツールバーの先頭) で初期位置・初期向きへ即時移動する
-  const homeButton = page.locator('button.cesium-button').first();
-  await expect(async () => {
-    await homeButton.click();
-    const before = await page.evaluate(() => localStorage.getItem('cameraInfo'));
-    await page.waitForTimeout(800);
-    const after = await page.evaluate(() => localStorage.getItem('cameraInfo'));
-    expect(before, 'カメラ位置がまだ保存されていません').not.toBeNull();
-    expect(before === after, 'カメラが移動中です').toBe(true);
+export const presetCamera = async (page: Page, { lon, lat }: { lon: number; lat: number }) => {
+  const cameraInfo = {
+    destination: lonLatToEcef(lon, lat, CAMERA_HEIGHT),
+    orientation: { heading: 0, pitch: -Math.PI / 2, roll: 0 },
+  };
+  await page.addInitScript(
+    (value) => localStorage.setItem('cameraInfo', value),
+    JSON.stringify(cameraInfo)
+  );
+};
 
-    const destination = JSON.parse(after!)?.destination;
+/**
+ * カメラがプリセットした地点の真上 5000m に静止したことを確認する。
+ * アプリが 500ms ごとに localStorage (cameraInfo) へ保存するカメラ位置が
+ * 変化しなくなり、かつ目標地点から 200m 以内にあることを検証する。
+ */
+export const waitForCameraSettled = async (
+  page: Page,
+  { lon, lat }: { lon: number; lat: number }
+) => {
+  const target = lonLatToEcef(lon, lat, CAMERA_HEIGHT);
+  const distance = (a: { x: number; y: number; z: number }, b: typeof a) =>
+    Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+  const readDestination = async () => {
+    const info = await page.evaluate(() => localStorage.getItem('cameraInfo'));
+    expect(info, 'カメラ位置がまだ保存されていません').not.toBeNull();
+    const destination = JSON.parse(info!)?.destination;
     expect(destination, 'カメラ位置が保存されていません').toBeTruthy();
-    const distance = Math.hypot(
-      destination.x - DEFAULT_CAMERA_ECEF.x,
-      destination.y - DEFAULT_CAMERA_ECEF.y,
-      destination.z - DEFAULT_CAMERA_ECEF.z
-    );
-    expect(distance, `カメラが初期位置にいません (ずれ 約${Math.round(distance)}m)`).toBeLessThan(
-      200
-    );
+    return destination as { x: number; y: number; z: number };
+  };
+  await expect(async () => {
+    const before = await readDestination();
+    await page.waitForTimeout(800);
+    const after = await readDestination();
+    // 描画中のわずかな揺らぎは移動とみなさない
+    const moved = distance(before, after);
+    const offset = distance(after, target);
+    expect(
+      moved,
+      `カメラが移動中です (0.8 秒で約${moved.toFixed(1)}m 移動、目標から約${Math.round(offset)}m)`
+    ).toBeLessThan(1);
+    expect(offset, `カメラが目標地点にいません (ずれ 約${Math.round(offset)}m)`).toBeLessThan(200);
   }).toPass({ timeout: LOAD_TIMEOUT });
 };
+
+/**
+ * 次のページ読み込みから、カメラを指定 z16 タイルの真上で開始させる。
+ * これで「表示範囲で検索」の取得範囲がそのタイルになる (作成時の着地ズレの影響を受けない)。
+ */
+const presetCameraOnTile = (page: Page, tile: TileXY) =>
+  presetCamera(page, tileCenterLonLat(tile, VIEW_TILE_Z));
+
+/** JSON 文字列中の空間 ID ("ID":"z/f/x/y") をすべて抽出する */
+const extractSpatialIds = (json: string): string[] =>
+  [...json.matchAll(/"ID":\s*"(\d+\/-?\d+\/\d+\/\d+)"/g)].map((m) => m[1]);
+
+/** 空間 ID (z/f/x/y) が属する z16 タイル */
+const tileOf = (spatialId: string): TileXY => {
+  const [z, , x, y] = spatialId.split('/').map(Number);
+  const scale = 2 ** (z - VIEW_TILE_Z);
+  return { x: Math.floor(x / scale), y: Math.floor(y / scale) };
+};
+
+/**
+ * 2 つの空間 ID が同じボクセルか、祖先・子孫の関係にあるか (ズームが違っても同じ領域を指すか)。
+ * 保存されたボクセルは登録時と異なるズームで返ることがあるため、ズームを揃えて比較する。
+ */
+const isSameRegion = (a: string, b: string) => {
+  const [lo, hi] = [a, b].map((id) => id.split('/').map(Number)).sort(([za], [zb]) => za - zb);
+  const scale = 2 ** (hi[0] - lo[0]);
+  return hi.slice(1).every((v, i) => Math.floor(v / scale) === lo[i + 1]);
+};
+
+/**
+ * 行区切り JSON ストリームの応答を objectId ごとの空間 ID 一覧にまとめる。
+ * objectId "0" の行は直前のオブジェクトのボクセルの続きとして扱う
+ * (spatial-id-svc-area の getSignalArea と同じ解釈)。
+ */
+const groupVoxelsByObject = (body: string): Map<string, string[]> => {
+  const objects = new Map<string, string[]>();
+  let current = '';
+  for (const line of body.split('\n').filter(Boolean)) {
+    const objectId = line.match(/"objectId":\s*"(-?\d+)"/)?.[1] ?? current;
+    if (objectId !== '0') {
+      current = objectId;
+    }
+    objects.set(current, [...(objects.get(current) ?? []), ...extractSpatialIds(line)]);
+  }
+  return objects;
+};
+
+/** 捕捉した API 呼び出し */
+interface ApiCall {
+  /** 応答を受け取った時刻 (ISO 8601) */
+  at: string;
+  /** リクエスト本文 */
+  request: string;
+  /** HTTP ステータス */
+  status: number;
+  /** 応答本文 */
+  body: string;
+}
+
+/**
+ * 次に発生する指定 API の呼び出しをルート経由で捕捉し、リクエスト本文と応答本文を返す。
+ * 応答はストリーム (行区切り JSON) で、ページ側が読み切った後に response.text() を呼ぶと
+ * Chromium が "No data found for resource" を返すことがあるため、
+ * Playwright 側で全文を取得してからページへ渡す。
+ * API を呼ぶ操作の前に呼び、操作後に await する。
+ */
+const captureApiCall = (page: Page, url: RegExp, timeout: number): Promise<ApiCall> =>
+  new Promise((resolve, reject) => {
+    const timer = setTimeout(async () => {
+      await page.unroute(url, handler);
+      reject(new Error(`${url} の呼び出しを ${timeout}ms 以内に捕捉できませんでした`));
+    }, timeout);
+    const handler = async (route: Route) => {
+      clearTimeout(timer);
+      await page.unroute(url, handler);
+      try {
+        const response = await route.fetch();
+        const body = await response.text();
+        await route.fulfill({ response, body });
+        resolve({
+          at: new Date().toISOString(),
+          request: route.request().postData() ?? '',
+          status: response.status(),
+          body,
+        });
+      } catch (e) {
+        await route.abort();
+        reject(e);
+      }
+    };
+    page.route(url, handler);
+  });
+
+/** 捕捉した API 呼び出しを失敗メッセージ用に整形する */
+const describeApiCall = ({ at, request, status, body }: ApiCall) =>
+  `リクエスト: ${request}\n応答 (${at}): HTTP ${status}, 本文 ${body.length} バイト`;
+
+/** 登録リクエストから得た情報 */
+export interface Registration extends ApiCall {
+  /** 送信された先頭の空間 ID (z/f/x/y) */
+  spatialId: string;
+}
+
+/**
+ * 登録 API (put-object / put-reserve-area) の呼び出しを捕捉し、送信された先頭の空間 ID を返す。
+ * 登録ボタンを押す前に呼び、登録後に await する。
+ */
+export const captureRegistration = (page: Page): Promise<Registration> =>
+  captureApiCall(page, /\/put-(object|reserve-area)$/, API_TIMEOUT).then((call) => {
+    const [spatialId] = extractSpatialIds(call.request);
+    expect(spatialId, '登録リクエストに空間 ID が含まれていません').toBeTruthy();
+    return { ...call, spatialId };
+  });
 
 /**
  * 期待テキストが表示されるまで canvas クリックをリトライする。
@@ -127,7 +263,8 @@ const clickCanvasUntil = async (
 ) => {
   await expect(async () => {
     await page.locator('canvas').first().click({ position });
-    await expect(page.getByText(expected)).toBeVisible({ timeout: 3_000 });
+    // 地点確定後のモデル再構築で画面遷移が遅れることがあるため、再クリックまで長めに待つ
+    await expect(page.getByText(expected)).toBeVisible({ timeout: 10_000 });
   }).toPass({ timeout });
 };
 
@@ -141,7 +278,21 @@ const selectSimpleRectangle = async (page: Page) => {
   await expect(page.getByText('高度 (f の値) を入力してください')).toBeVisible({
     timeout: API_TIMEOUT,
   });
-  await page.getByRole('button', { name: '確定' }).click();
+  // 自動計算された f を使わず、下限・上限とも TILE_F を入力する (値が同じでも入力して確実に反映させる)
+  for (const input of await page.getByRole('spinbutton').all()) {
+    await input.fill(String(TILE_F + 1));
+    await input.fill(String(TILE_F));
+  }
+  await page.getByRole('button', { name: '適用' }).click();
+  // 「適用」の非同期更新 (createStoreUpdater は Promise を返さない) が完了する前に「確定」すると、
+  // 完了時に古い状態で store が上書きされて高度入力画面へ戻る。戻らなくなるまで確定を繰り返す。
+  const tileFPrompt = page.getByText('高度 (f の値) を入力してください');
+  await expect(async () => {
+    await page.getByRole('button', { name: '確定' }).click();
+    await expect(tileFPrompt).not.toBeVisible({ timeout: 3_000 });
+    await page.waitForTimeout(1_000);
+    await expect(tileFPrompt, '非同期更新の完了で高度入力画面へ戻されました').not.toBeVisible();
+  }).toPass({ timeout: API_TIMEOUT });
 };
 
 /** 作成フローのタイプ固有ステップ */
@@ -156,13 +307,20 @@ export interface CreateAreaHooks {
   beforeRegister?: (page: Page) => Promise<void>;
 }
 
-/** 矩形ベースの作成フロー全体を実行し、登録された ID を返す */
-export const createArea = async (page: Page, hooks: CreateAreaHooks): Promise<string> => {
+/** 作成結果: 登録された ID と、登録リクエストの先頭の空間 ID */
+export interface CreatedObject {
+  objectId: string;
+  spatialId: string;
+}
+
+/** 矩形ベースの作成フロー全体を実行し、登録された ID と空間 ID を返す */
+export const createArea = async (page: Page, hooks: CreateAreaHooks): Promise<CreatedObject> => {
+  await presetCamera(page, TEST_LOCATION);
   await page.goto(hooks.createPath);
   if (hooks.tabName) {
     await selectTab(page, hooks.tabName);
   }
-  await waitForCameraSettled(page);
+  await waitForCameraSettled(page, TEST_LOCATION);
   await selectSimpleRectangle(page);
   if (hooks.afterTileF) {
     await hooks.afterTileF(page);
@@ -171,25 +329,34 @@ export const createArea = async (page: Page, hooks: CreateAreaHooks): Promise<st
   await expect(
     page.getByText('範囲を追加するか、完了して登録に進むか選択してください')
   ).toBeVisible({ timeout: API_TIMEOUT });
+  const registration = captureRegistration(page);
   await page.getByRole('button', { name: '登録', exact: true }).click();
   if (hooks.beforeRegister) {
     await hooks.beforeRegister(page);
   }
-  return await extractRegisteredId(page);
+  const { spatialId } = await registration;
+  return { objectId: await extractRegisteredId(page, await registration), spatialId };
 };
 
-/** 登録結果画面から「登録された ID: {数字}」を抽出する */
-export const extractRegisteredId = async (page: Page): Promise<string> => {
+/** 登録結果画面から「登録された ID: {数字}」を抽出する (失敗時は登録 API の応答を添える) */
+export const extractRegisteredId = async (
+  page: Page,
+  registration: Registration
+): Promise<string> => {
   const result = page.getByText(/登録された ID: \d+/);
-  await expect(result).toBeVisible({ timeout: API_TIMEOUT });
+  await expect(result, `登録結果が表示されません\n${describeApiCall(registration)}`).toBeVisible({
+    timeout: API_TIMEOUT,
+  });
   return (await result.innerText()).match(/\d+/)![0];
 };
 
-/** 「ID で検索」からオブジェクトを取得する */
-export const searchById = async (page: Page, id: string) => {
+/** 「ID で検索」からオブジェクトを取得し、get-object の応答本文を返す */
+export const searchById = async (page: Page, id: string): Promise<string> => {
   await page.getByRole('button', { name: 'ID で検索' }).click();
   await page.getByRole('spinbutton').fill(id);
+  const call = captureApiCall(page, /\/get-object$/, API_TIMEOUT);
   await page.getByRole('button', { name: '取得する' }).click();
+  return (await call).body;
 };
 
 /** 「{featureName} {id} を表示しています」が表示されることを検証する */
@@ -210,82 +377,122 @@ export const expectModelNotFound = async (page: Page, id: string) => {
   await page.getByRole('spinbutton').fill(id);
   await page.getByRole('button', { name: '取得する' }).click();
   // toast (react-toastify) は自動で消えるため先に検証する
-  await expect(
-    page.getByRole('alert').getByText('リソースが見つかりませんでした。')
-  ).toBeVisible({ timeout: API_TIMEOUT });
+  await expect(page.getByRole('alert').getByText('リソースが見つかりませんでした。')).toBeVisible({
+    timeout: API_TIMEOUT,
+  });
   await expect(page.getByText('エラーが発生しました。')).toBeVisible();
 };
 
 /**
- * 「表示範囲で検索」で読み込み、ボクセルが実際に地図上へ描画されていることを検証する。
- * ボクセルは Cesium の 3D タイルセットとして描画され DOM に現れないため、
- * グリッド走査でクリックし「{featureName} {id} が選択されています」が出ることで描画有無を確認する。
- * ID の一致までは要求しない (並列実行で他のデータが選択されても許容する) が、
- * 何も描画されていなければどの点でも選択されないため確実に失敗する。
+ * 指定 z16 タイルの真上から表示ページを開き、「表示範囲で検索」でそのタイルを読み込んで
+ * 範囲検索 API (get-value) の呼び出し内容を返す。
+ * ボクセルは Cesium の 3D タイルセットとして描画され DOM に現れず、クリック位置も
+ * 安定しないため、描画そのものではなく API 応答で範囲検索の結果を確認する。
  */
 export const loadModelsInView = async (
   page: Page,
-  featureName: string,
-  options?: { skipVoxelCheck?: boolean }
-) => {
+  target: ViewerTarget,
+  tile: TileXY
+): Promise<ApiCall> => {
+  await presetCameraOnTile(page, tile);
+  await page.goto(target.viewPath);
+  if (target.tabName) {
+    await selectTab(page, target.tabName);
+  }
   await page.getByRole('button', { name: '表示範囲で検索' }).click();
-  await expect(page.getByText(`描画範囲の${featureName}を表示`)).toBeVisible();
+  await expect(page.getByText(`描画範囲の${target.featureName}を表示`)).toBeVisible();
+  // 高度 (f) を自動 (地表面付近) にせず TILE_F を指定する
+  await page.getByRole('checkbox', { name: '自動 (地表面付近)' }).uncheck();
+  await page.getByRole('spinbutton').fill(String(TILE_F));
+  // カメラが指定タイルの真上にあり、取得範囲がそのタイルになるのを待つ
+  const tileText = new RegExp(`取得範囲 .*${VIEW_TILE_Z}/${TILE_F}/${tile.x}/${tile.y}`);
+  await expect(page.getByText(tileText)).toBeVisible({ timeout: LOAD_TIMEOUT });
+
+  const call = captureApiCall(page, /\/get-value$/, LOAD_TIMEOUT);
   await page.getByRole('button', { name: '読み込み' }).click();
+  const result = await call;
   await expect(page.getByRole('button', { name: '読み込み' })).toBeEnabled({
     timeout: LOAD_TIMEOUT,
   });
   await expect(page.getByText('エラーが発生しました。')).not.toBeVisible();
-  if (options?.skipVoxelCheck) {
-    return;
-  }
-
-  // グリッド上の点を順にクリックし、どこかでボクセルが選択されるまで走査を繰り返す
-  const selectedText = page.getByText(
-    new RegExp(`${escapeRegExp(featureName)} \\d+ が選択されています`)
-  );
-  await expect(async () => {
-    for (const position of VOXEL_SEARCH_GRID) {
-      await page.locator('canvas').first().click({ position });
-      try {
-        await expect(selectedText).toBeVisible({ timeout: 200 });
-        return;
-      } catch {
-        // この点にはボクセルが無いので次の点を試す
-      }
-    }
-    // 1 周して見つからなければ失敗にして走査をやり直す (タイルセットの描画待ち)
-    expect(false, 'ボクセルがクリックで選択できませんでした').toBe(true);
-  }).toPass({ timeout: LOAD_TIMEOUT });
+  return result;
 };
 
 /**
- * ビューアページで「表示 (ID 検索) → 表示 (範囲検索・描画確認) → 削除 → 削除確認」を実行する。
+ * ビューアページで「ID 検索 → 範囲検索 → ID 検索 → 削除 → 削除確認 → 範囲検索」を実行する。
+ * 範囲検索は、get-object で取得したサーバ保存済みの空間 ID のタイルに対して行い、
+ * 応答に登録した objectId があり、そのボクセルに保存済み空間 ID が含まれることを確認する
+ * (既存データを拾っただけでは通らない)。削除後は同じ範囲から objectId が消えることを確認する。
  * 作成フローの形式 (矩形・JSON アップロード) に依存しないため、全データタイプで共用できる。
  */
 export const verifyAndDeleteViaViewer = async (
   page: Page,
   target: ViewerTarget,
-  objectId: string
+  created: CreatedObject
 ) => {
-  // 表示 (範囲検索・描画確認): 作成時と同じ初期カメラ位置なら、ボクセルはグリッド走査の範囲内に描画される
+  // ID 検索: サーバに保存された実体 (空間 ID) を get-object から取得する
   await page.goto(target.viewPath);
   if (target.tabName) {
     await selectTab(page, target.tabName);
   }
-  await waitForCameraSettled(page);
-  await loadModelsInView(page, target.featureName, {
-    skipVoxelCheck: target.skipRangeVoxelCheck,
-  });
+  const storedIds = extractSpatialIds(await searchById(page, created.objectId));
+  await expectModelDisplayed(page, target.featureName, created.objectId);
+  expect(
+    storedIds,
+    `get-object 応答に ${created.objectId} の空間 ID がありません`
+  ).not.toHaveLength(0);
+  const [storedId] = storedIds;
+  if (!storedIds.includes(created.spatialId)) {
+    console.log(
+      `[e2e] ${created.objectId}: 登録リクエストの空間 ID ${created.spatialId} が保存データに無く、保存データは ${storedId} から始まります`
+    );
+  }
 
-  // 表示 (ID 検索) → 削除: 範囲検索のボクセル選択状態をページ再読込でリセットしてから行う
+  // 範囲検索: 保存済み空間 ID のタイルを検索し、登録した objectId とそのボクセルが返ることを確認する
+  // (soft: 失敗しても削除まで進めて残骸を消す)
+  const tile = tileOf(storedId);
+  const before = await loadModelsInView(page, target, tile);
+  const objects = groupVoxelsByObject(before.body);
+  const holders = [...objects].filter(([, ids]) => ids.some((id) => isSameRegion(id, storedId)));
+  const range = `範囲検索 ${VIEW_TILE_Z}/${tile.x}/${tile.y}`;
+  expect
+    .soft(
+      objects.has(created.objectId),
+      [
+        `${range} の応答に objectId ${created.objectId} がありません`,
+        `応答の objectId: ${[...objects.keys()].join(', ') || 'なし'}`,
+        `保存済み空間 ID ${storedId} を含む objectId: ${
+          holders.map(([id]) => id).join(', ') || 'なし'
+        }`,
+        describeApiCall(before),
+      ].join('\n')
+    )
+    .toBe(true);
+  expect
+    .soft(
+      (objects.get(created.objectId) ?? []).some((id) => isSameRegion(id, storedId)),
+      `${range} の応答の objectId ${
+        created.objectId
+      } に保存済み空間 ID ${storedId} が含まれていません\n${describeApiCall(before)}`
+    )
+    .toBe(true);
+
+  // ID 検索 → 削除: 範囲検索の表示状態をページ再読込でリセットしてから行う
   await page.goto(target.viewPath);
   if (target.tabName) {
     await selectTab(page, target.tabName);
   }
-  await searchById(page, objectId);
-  await expectModelDisplayed(page, target.featureName, objectId);
+  await searchById(page, created.objectId);
+  await expectModelDisplayed(page, target.featureName, created.objectId);
   await deleteDisplayedModel(page);
 
-  // 削除確認
-  await expectModelNotFound(page, objectId);
+  // 削除確認 (ID 検索)
+  await expectModelNotFound(page, created.objectId);
+
+  // 削除確認 (範囲検索): 削除した objectId が消えていること
+  const after = await loadModelsInView(page, target, tile);
+  expect(
+    groupVoxelsByObject(after.body).has(created.objectId),
+    `削除後も ${range} に objectId ${created.objectId} が残っています\n${describeApiCall(after)}`
+  ).toBe(false);
 };
