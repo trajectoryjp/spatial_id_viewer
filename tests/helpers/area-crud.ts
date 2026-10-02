@@ -6,24 +6,46 @@ export const API_TIMEOUT = 30_000;
 /** 取得系 (範囲表示) の待機タイムアウト */
 export const LOAD_TIMEOUT = 60_000;
 
-/**
- * テストデータを作成する地点 (東京湾上)。
- * 既存データが入っていない海上にすることで、範囲検索の応答がテストで作成したデータだけになり、
- * 既存データを拾って通ってしまうことや、残骸との衝突を避ける。
- * 作成・表示とも localStorage の cameraInfo でこの地点の真上 5000m にカメラをプリセットする。
- */
-export const TEST_LOCATION = { lon: 139.8, lat: 35.5 };
-
-/**
- * 矩形選択に使う固定座標 (カメラ: TEST_LOCATION 上空 5000m 真下向き・ビューポート 1280x720 前提)。
- * 矩形を大きくしすぎると作成画面の処理が重くなるため、この大きさ (z20 で 200 タイル強) に留める。
- * 着地した正確な位置は get-object の保存済み空間 ID から求めるため、多少のズレは表示フェーズに影響しない。
- */
-const RECT_POINT_1 = { x: 661, y: 507 };
-const RECT_POINT_2 = { x: 836, y: 638 };
-
 /** 範囲検索 (表示範囲で検索) が最大範囲として使うズームレベル (show-models.tsx の MIN_Z) */
 const VIEW_TILE_Z = 16;
+
+/** z16 のタイル座標 */
+export interface TileXY {
+  x: number;
+  y: number;
+}
+
+/** 経度・緯度から WebMercator のタイル座標を求める */
+const lonLatToTile = (lon: number, lat: number, z: number): TileXY => {
+  const latRad = (lat * Math.PI) / 180;
+  const n = 2 ** z;
+  return {
+    x: Math.floor(((lon + 180) / 360) * n),
+    y: Math.floor(((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n),
+  };
+};
+
+/**
+ * テストデータを作成する基準の z16 タイル (東京湾上 139.8, 35.5)。
+ * 既存データが入っていない海上にすることで、範囲検索の応答がテストで作成したデータだけになる。
+ */
+const BASE_TILE = lonLatToTile(139.8, 35.5, VIEW_TILE_Z);
+
+/**
+ * テストごとに使う z16 タイル。基準タイルから東へ index 個ずらす (1 タイル約 500m)。
+ * 種別ごとに別タイルにして、同時実行や失敗ランの残骸で範囲検索の結果が混ざらないようにする。
+ */
+export const testTile = (index: number): TileXY => ({ x: BASE_TILE.x + index, y: BASE_TILE.y });
+
+/**
+ * 矩形選択に使う固定座標 (カメラ: タイル中心の上空 5000m 真下向き・ビューポート 1280x720 前提)。
+ * 画面中央 (640, 360) がタイル中心で、1px は地上約 4.5m。
+ * 範囲検索は検索範囲内のボクセルしか返さず、テストは応答のボクセル列と登録分の一致を取るため、
+ * 矩形は z16 タイル (約 500m 四方) に収まる大きさ (中央から ±30px、約 270m 四方) にする。
+ * 左側のナビゲーションパネル (幅 384px) にはかからない。
+ */
+const RECT_POINT_1 = { x: 610, y: 330 };
+const RECT_POINT_2 = { x: 670, y: 390 };
 
 /**
  * 作成・表示で明示的に指定する高度 (f)。
@@ -36,12 +58,6 @@ const TILE_F = 0;
 /** カメラ高度 (viewer/index.tsx の defaultDestination と同じ 5000m) */
 const CAMERA_HEIGHT = 5000;
 
-/** z16 のタイル座標 */
-export interface TileXY {
-  x: number;
-  y: number;
-}
-
 /** 表示・削除フェーズで必要となるデータタイプ情報 */
 export interface ViewerTarget {
   /** 表示・削除ページのパス */
@@ -50,6 +66,10 @@ export interface ViewerTarget {
   featureName: string;
   /** タブ型ページの場合のタブ名 */
   tabName?: string;
+  /**
+   * 範囲検索で登録 objectId での照合をスキップし、応答全体のボクセル列と登録分の一致で検証する種別 (地形)。
+   */
+  rangeSearchWithoutObjectId?: boolean;
 }
 
 /**
@@ -157,16 +177,6 @@ const tileOf = (spatialId: string): TileXY => {
 };
 
 /**
- * 2 つの空間 ID が同じボクセルか、祖先・子孫の関係にあるか (ズームが違っても同じ領域を指すか)。
- * 保存されたボクセルは登録時と異なるズームで返ることがあるため、ズームを揃えて比較する。
- */
-const isSameRegion = (a: string, b: string) => {
-  const [lo, hi] = [a, b].map((id) => id.split('/').map(Number)).sort(([za], [zb]) => za - zb);
-  const scale = 2 ** (hi[0] - lo[0]);
-  return hi.slice(1).every((v, i) => Math.floor(v / scale) === lo[i + 1]);
-};
-
-/**
  * 行区切り JSON ストリームの応答を objectId ごとの空間 ID 一覧にまとめる。
  * objectId "0" の行は直前のオブジェクトのボクセルの続きとして扱う
  * (spatial-id-svc-area の getSignalArea と同じ解釈)。
@@ -182,6 +192,28 @@ const groupVoxelsByObject = (body: string): Map<string, string[]> => {
     objects.set(current, [...(objects.get(current) ?? []), ...extractSpatialIds(line)]);
   }
   return objects;
+};
+
+/**
+ * 2 つの空間 ID 列が、並び順と重複を無視して同じボクセルの集合か検証する (soft)。
+ * 失敗時は不足・余分なボクセルの数と例を添える。
+ */
+const expectSameVoxelSet = (actual: string[], expected: string[], message: string) => {
+  const actualSet = new Set(actual);
+  const expectedSet = new Set(expected);
+  const missing = [...expectedSet].filter((id) => !actualSet.has(id));
+  const extra = [...actualSet].filter((id) => !expectedSet.has(id));
+  expect
+    .soft(
+      { missing: missing.length, extra: extra.length },
+      [
+        message,
+        `応答 ${actualSet.size} 個, 登録 ${expectedSet.size} 個`,
+        `不足 ${missing.length} 個 (例: ${missing.slice(0, 3).join(', ') || 'なし'})`,
+        `余分 ${extra.length} 個 (例: ${extra.slice(0, 3).join(', ') || 'なし'})`,
+      ].join('\n')
+    )
+    .toEqual({ missing: 0, extra: 0 });
 };
 
 /** 捕捉した API 呼び出し */
@@ -234,22 +266,12 @@ const captureApiCall = (page: Page, url: RegExp, timeout: number): Promise<ApiCa
 const describeApiCall = ({ at, request, status, body }: ApiCall) =>
   `リクエスト: ${request}\n応答 (${at}): HTTP ${status}, 本文 ${body.length} バイト`;
 
-/** 登録リクエストから得た情報 */
-export interface Registration extends ApiCall {
-  /** 送信された先頭の空間 ID (z/f/x/y) */
-  spatialId: string;
-}
-
 /**
- * 登録 API (put-object / put-reserve-area) の呼び出しを捕捉し、送信された先頭の空間 ID を返す。
+ * 登録 API (put-object / put-reserve-area) の呼び出しを捕捉する (失敗時のメッセージ用)。
  * 登録ボタンを押す前に呼び、登録後に await する。
  */
-export const captureRegistration = (page: Page): Promise<Registration> =>
-  captureApiCall(page, /\/put-(object|reserve-area)$/, API_TIMEOUT).then((call) => {
-    const [spatialId] = extractSpatialIds(call.request);
-    expect(spatialId, '登録リクエストに空間 ID が含まれていません').toBeTruthy();
-    return { ...call, spatialId };
-  });
+export const captureRegistration = (page: Page): Promise<ApiCall> =>
+  captureApiCall(page, /\/put-(object|reserve-area)$/, API_TIMEOUT);
 
 /**
  * 期待テキストが表示されるまで canvas クリックをリトライする。
@@ -307,20 +329,19 @@ export interface CreateAreaHooks {
   beforeRegister?: (page: Page) => Promise<void>;
 }
 
-/** 作成結果: 登録された ID と、登録リクエストの先頭の空間 ID */
-export interface CreatedObject {
-  objectId: string;
-  spatialId: string;
-}
-
-/** 矩形ベースの作成フロー全体を実行し、登録された ID と空間 ID を返す */
-export const createArea = async (page: Page, hooks: CreateAreaHooks): Promise<CreatedObject> => {
-  await presetCamera(page, TEST_LOCATION);
+/** 矩形ベースの作成フロー全体を指定 z16 タイルの中心で実行し、登録された ID を返す */
+export const createArea = async (
+  page: Page,
+  hooks: CreateAreaHooks,
+  tile: TileXY
+): Promise<string> => {
+  const center = tileCenterLonLat(tile, VIEW_TILE_Z);
+  await presetCamera(page, center);
   await page.goto(hooks.createPath);
   if (hooks.tabName) {
     await selectTab(page, hooks.tabName);
   }
-  await waitForCameraSettled(page, TEST_LOCATION);
+  await waitForCameraSettled(page, center);
   await selectSimpleRectangle(page);
   if (hooks.afterTileF) {
     await hooks.afterTileF(page);
@@ -334,15 +355,11 @@ export const createArea = async (page: Page, hooks: CreateAreaHooks): Promise<Cr
   if (hooks.beforeRegister) {
     await hooks.beforeRegister(page);
   }
-  const { spatialId } = await registration;
-  return { objectId: await extractRegisteredId(page, await registration), spatialId };
+  return extractRegisteredId(page, await registration);
 };
 
 /** 登録結果画面から「登録された ID: {数字}」を抽出する (失敗時は登録 API の応答を添える) */
-export const extractRegisteredId = async (
-  page: Page,
-  registration: Registration
-): Promise<string> => {
+export const extractRegisteredId = async (page: Page, registration: ApiCall): Promise<string> => {
   const result = page.getByText(/登録された ID: \d+/);
   await expect(result, `登録結果が表示されません\n${describeApiCall(registration)}`).toBeVisible({
     timeout: API_TIMEOUT,
@@ -420,79 +437,88 @@ export const loadModelsInView = async (
 
 /**
  * ビューアページで「ID 検索 → 範囲検索 → ID 検索 → 削除 → 削除確認 → 範囲検索」を実行する。
- * 範囲検索は、get-object で取得したサーバ保存済みの空間 ID のタイルに対して行い、
- * 応答に登録した objectId があり、そのボクセルに保存済み空間 ID が含まれることを確認する
- * (既存データを拾っただけでは通らない)。削除後は同じ範囲から objectId が消えることを確認する。
+ * 範囲検索は、get-object で取得した保存済みの空間 ID が属する z16 タイルに対して行い、
+ * 応答のボクセル列 (objectId は問わない) が保存済みの空間 ID と集合として一致することを確認する。
+ * 範囲検索は検索範囲内のボクセルしか返さないため、作成したボクセルがそのタイルに
+ * 収まっていることを先に検証する。削除後は同じ範囲から保存済みの空間 ID が消えることを確認する。
  * 作成フローの形式 (矩形・JSON アップロード) に依存しないため、全データタイプで共用できる。
  */
 export const verifyAndDeleteViaViewer = async (
   page: Page,
   target: ViewerTarget,
-  created: CreatedObject
+  objectId: string
 ) => {
-  // ID 検索: サーバに保存された実体 (空間 ID) を get-object から取得する
+  // ID 検索: 保存された実体 (空間 ID) を get-object から取得する
   await page.goto(target.viewPath);
   if (target.tabName) {
     await selectTab(page, target.tabName);
   }
-  const storedIds = extractSpatialIds(await searchById(page, created.objectId));
-  await expectModelDisplayed(page, target.featureName, created.objectId);
-  expect(
-    storedIds,
-    `get-object 応答に ${created.objectId} の空間 ID がありません`
-  ).not.toHaveLength(0);
-  const [storedId] = storedIds;
-  if (!storedIds.includes(created.spatialId)) {
-    console.log(
-      `[e2e] ${created.objectId}: 登録リクエストの空間 ID ${created.spatialId} が保存データに無く、保存データは ${storedId} から始まります`
-    );
-  }
+  const storedIds = extractSpatialIds(await searchById(page, objectId));
+  await expectModelDisplayed(page, target.featureName, objectId);
+  expect(storedIds, `get-object 応答に ${objectId} の空間 ID がありません`).not.toHaveLength(0);
 
-  // 範囲検索: 保存済み空間 ID のタイルを検索し、登録した objectId とそのボクセルが返ることを確認する
-  // (soft: 失敗しても削除まで進めて残骸を消す)
-  const tile = tileOf(storedId);
+  // 作成したボクセルが範囲検索の z16 タイルに収まっていること
+  const tile = tileOf(storedIds[0]);
+  const outside = storedIds.filter((id) => {
+    const t = tileOf(id);
+    return t.x !== tile.x || t.y !== tile.y;
+  });
+  expect(
+    outside,
+    `作成したボクセルが範囲検索の z16 タイル ${tile.x}/${tile.y} に収まっていません (範囲外 ${outside.length} 個、例: ${outside[0]})`
+  ).toHaveLength(0);
+
+  // 範囲検索 (soft: 失敗しても削除まで進めて残骸を消す):
+  // 通常は応答に登録 objectId があり、そのボクセル列が保存済みの空間 ID と一致すること。
+  // 地形 (rangeSearchWithoutObjectId) は応答全体のボクセル列が保存済みの空間 ID と一致すること。
+  const range = `範囲検索 ${VIEW_TILE_Z}/${tile.x}/${tile.y}`;
   const before = await loadModelsInView(page, target, tile);
   const objects = groupVoxelsByObject(before.body);
-  const holders = [...objects].filter(([, ids]) => ids.some((id) => isSameRegion(id, storedId)));
-  const range = `範囲検索 ${VIEW_TILE_Z}/${tile.x}/${tile.y}`;
-  expect
-    .soft(
-      objects.has(created.objectId),
-      [
-        `${range} の応答に objectId ${created.objectId} がありません`,
-        `応答の objectId: ${[...objects.keys()].join(', ') || 'なし'}`,
-        `保存済み空間 ID ${storedId} を含む objectId: ${
-          holders.map(([id]) => id).join(', ') || 'なし'
-        }`,
-        describeApiCall(before),
-      ].join('\n')
-    )
-    .toBe(true);
-  expect
-    .soft(
-      (objects.get(created.objectId) ?? []).some((id) => isSameRegion(id, storedId)),
-      `${range} の応答の objectId ${
-        created.objectId
-      } に保存済み空間 ID ${storedId} が含まれていません\n${describeApiCall(before)}`
-    )
-    .toBe(true);
+  if (!target.rangeSearchWithoutObjectId) {
+    expect
+      .soft(
+        objects.has(objectId),
+        `${range} の応答に objectId ${objectId} がありません (応答の objectId: ${
+          [...objects.keys()].join(', ') || 'なし'
+        })\n${describeApiCall(before)}`
+      )
+      .toBe(true);
+  }
+  expectSameVoxelSet(
+    target.rangeSearchWithoutObjectId ? [...objects.values()].flat() : objects.get(objectId) ?? [],
+    storedIds,
+    `${range} の応答のボクセルが ${objectId} の保存済み空間 ID と一致しません\n${describeApiCall(
+      before
+    )}`
+  );
 
   // ID 検索 → 削除: 範囲検索の表示状態をページ再読込でリセットしてから行う
   await page.goto(target.viewPath);
   if (target.tabName) {
     await selectTab(page, target.tabName);
   }
-  await searchById(page, created.objectId);
-  await expectModelDisplayed(page, target.featureName, created.objectId);
+  await searchById(page, objectId);
+  await expectModelDisplayed(page, target.featureName, objectId);
   await deleteDisplayedModel(page);
 
   // 削除確認 (ID 検索)
-  await expectModelNotFound(page, created.objectId);
+  await expectModelNotFound(page, objectId);
 
-  // 削除確認 (範囲検索): 削除した objectId が消えていること
+  // 削除確認 (範囲検索): 登録 objectId (地形は保存済みだった空間 ID) が応答から消えていること
   const after = await loadModelsInView(page, target, tile);
+  const afterObjects = groupVoxelsByObject(after.body);
+  if (!target.rangeSearchWithoutObjectId) {
+    expect(
+      afterObjects.has(objectId),
+      `削除後も ${range} に objectId ${objectId} が残っています\n${describeApiCall(after)}`
+    ).toBe(false);
+  }
+  const stored = new Set(storedIds);
+  const remaining = [...afterObjects.values()].flat().filter((id) => stored.has(id));
   expect(
-    groupVoxelsByObject(after.body).has(created.objectId),
-    `削除後も ${range} に objectId ${created.objectId} が残っています\n${describeApiCall(after)}`
-  ).toBe(false);
+    remaining,
+    `削除後も ${range} に ${objectId} のボクセルが残っています (${remaining.length} 個、例: ${
+      remaining[0]
+    })\n${describeApiCall(after)}`
+  ).toHaveLength(0);
 };

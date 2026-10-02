@@ -5,8 +5,10 @@ import {
   captureRegistration,
   extractRegisteredId,
   resetCameraInfo,
+  testTile,
   verifyAndDeleteViaViewer,
 } from './helpers/area-crud';
+import { AREA_TYPE_CONFIGS } from './helpers/data-type-configs';
 import { makeReservedRouteJson } from './helpers/reserved-route-fixture';
 
 /**
@@ -21,14 +23,15 @@ test('予約ルート (ReserveArea): 作成→表示→削除の CRUD ができ�
   // 作成: 予約ルートの JSON をメモリ上で生成してアップロードする
   // (アプリ側が file.type === 'application/json' を検証するため mimeType の指定が必須)
   await page.goto('/reserved-routes/create');
+  // 矩形ベースの種別と重ならないよう、その次のタイルを使う
+  const tile = testTile(AREA_TYPE_CONFIGS.length);
   await page.locator('input[type="file"]').setInputFiles({
     name: 'reserved-route.json',
     mimeType: 'application/json',
-    buffer: Buffer.from(JSON.stringify(makeReservedRouteJson())),
+    buffer: Buffer.from(JSON.stringify(makeReservedRouteJson(tile))),
   });
   const registration = captureRegistration(page);
   await page.getByRole('button', { name: 'レジスター' }).click();
-  const { spatialId } = await registration;
   await expect(page.getByText('登録が正常に完了しました。')).toBeVisible({
     timeout: API_TIMEOUT,
   });
@@ -38,6 +41,6 @@ test('予約ルート (ReserveArea): 作成→表示→削除の CRUD ができ�
   await verifyAndDeleteViaViewer(
     page,
     { viewPath: '/reserved-routes', featureName: '予約ルート' },
-    { objectId, spatialId }
+    objectId
   );
 });

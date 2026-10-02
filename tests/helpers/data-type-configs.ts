@@ -25,6 +25,8 @@ export const AREA_TYPE_CONFIGS: AreaTypeConfig[] = [
     createPath: '/barriers/create',
     viewPath: '/barriers',
     featureName: '地形バリア',
+    // 地形の範囲検索は登録 objectId での照合をスキップし、ボクセル列で照合する
+    rangeSearchWithoutObjectId: true,
   },
   {
     name: '建物バリア (Building)',
