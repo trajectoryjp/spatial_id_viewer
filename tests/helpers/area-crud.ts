@@ -26,10 +26,10 @@ const lonLatToTile = (lon: number, lat: number, z: number): TileXY => {
 };
 
 /**
- * テストデータを作成する基準の z16 タイル (東京湾上 139.8, 35.5)。
+ * テストデータを作成する基準の z16 タイル (東京湾上 139.8, 35.48)。
  * 既存データが入っていない海上にすることで、範囲検索の応答がテストで作成したデータだけになる。
  */
-const BASE_TILE = lonLatToTile(139.8, 35.5, VIEW_TILE_Z);
+const BASE_TILE = lonLatToTile(139.8, 35.48, VIEW_TILE_Z);
 
 /**
  * テストごとに使う z16 タイル。基準タイルから東へ index 個ずらす (1 タイル約 500m)。
@@ -127,7 +127,9 @@ export const presetCamera = async (page: Page, { lon, lat }: { lon: number; lat:
 /**
  * カメラがプリセットした地点の真上 5000m に静止したことを確認する。
  * アプリが 500ms ごとに localStorage (cameraInfo) へ保存するカメラ位置が
- * 変化しなくなり、かつ目標地点から 200m 以内にあることを検証する。
+ * 変化しなくなり、かつ目標地点から 30m 以内にあることを検証する。
+ * 静止しているのに目標から離れている場合 (初回読み込み時に起きる) はページを再読込して
+ * プリセットをやり直す。矩形を z16 タイルに収めるため、許容誤差は小さくしている。
  */
 export const waitForCameraSettled = async (
   page: Page,
@@ -154,7 +156,10 @@ export const waitForCameraSettled = async (
       moved,
       `カメラが移動中です (0.8 秒で約${moved.toFixed(1)}m 移動、目標から約${Math.round(offset)}m)`
     ).toBeLessThan(1);
-    expect(offset, `カメラが目標地点にいません (ずれ 約${Math.round(offset)}m)`).toBeLessThan(200);
+    if (offset >= 30) {
+      await page.reload();
+    }
+    expect(offset, `カメラが目標地点にいません (ずれ 約${Math.round(offset)}m)`).toBeLessThan(30);
   }).toPass({ timeout: LOAD_TIMEOUT });
 };
 
@@ -241,9 +246,10 @@ const captureApiCall = (page: Page, url: RegExp, timeout: number): Promise<ApiCa
       await page.unroute(url, handler);
       reject(new Error(`${url} の呼び出しを ${timeout}ms 以内に捕捉できませんでした`));
     }, timeout);
+    // ハンドラ内で unroute すると元のリクエストがそのまま送られて二重送信になるため、
+    // times: 1 で 1 回だけ捕捉させる
     const handler = async (route: Route) => {
       clearTimeout(timer);
-      await page.unroute(url, handler);
       try {
         const response = await route.fetch();
         const body = await response.text();
@@ -259,7 +265,7 @@ const captureApiCall = (page: Page, url: RegExp, timeout: number): Promise<ApiCa
         reject(e);
       }
     };
-    page.route(url, handler);
+    page.route(url, handler, { times: 1 });
   });
 
 /** 捕捉した API 呼び出しを失敗メッセージ用に整形する */
@@ -268,10 +274,21 @@ const describeApiCall = ({ at, request, status, body }: ApiCall) =>
 
 /**
  * 登録 API (put-object / put-reserve-area) の呼び出しを捕捉する (失敗時のメッセージ用)。
+ * 登録は副作用があるためルートを挟まず、応答 (ストリームではない JSON) をそのまま読む。
  * 登録ボタンを押す前に呼び、登録後に await する。
  */
 export const captureRegistration = (page: Page): Promise<ApiCall> =>
-  captureApiCall(page, /\/put-(object|reserve-area)$/, API_TIMEOUT);
+  page
+    .waitForResponse(
+      (res) => res.request().method() === 'POST' && /\/put-(object|reserve-area)$/.test(res.url()),
+      { timeout: API_TIMEOUT }
+    )
+    .then(async (res) => ({
+      at: new Date().toISOString(),
+      request: res.request().postData() ?? '',
+      status: res.status(),
+      body: await res.text(),
+    }));
 
 /**
  * 期待テキストが表示されるまで canvas クリックをリトライする。
@@ -338,10 +355,11 @@ export const createArea = async (
   const center = tileCenterLonLat(tile, VIEW_TILE_Z);
   await presetCamera(page, center);
   await page.goto(hooks.createPath);
+  // カメラ静定の確認は再読込を伴うことがあるため、タブ切り替えはその後に行う
+  await waitForCameraSettled(page, center);
   if (hooks.tabName) {
     await selectTab(page, hooks.tabName);
   }
-  await waitForCameraSettled(page, center);
   await selectSimpleRectangle(page);
   if (hooks.afterTileF) {
     await hooks.afterTileF(page);
