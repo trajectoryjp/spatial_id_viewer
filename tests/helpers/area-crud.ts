@@ -138,34 +138,41 @@ export const waitForCameraSettled = async (
   const target = lonLatToEcef(lon, lat, CAMERA_HEIGHT);
   const distance = (a: { x: number; y: number; z: number }, b: typeof a) =>
     Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
-  const readDestination = async () => {
+  const readCamera = async () => {
     const info = await page.evaluate(() => localStorage.getItem('cameraInfo'));
     expect(info, 'カメラ位置がまだ保存されていません').not.toBeNull();
-    const destination = JSON.parse(info!)?.destination;
+    const { destination, orientation } = JSON.parse(info!) ?? {};
     expect(destination, 'カメラ位置が保存されていません').toBeTruthy();
-    return destination as { x: number; y: number; z: number };
+    return {
+      destination: destination as { x: number; y: number; z: number },
+      orientation: orientation as { heading: number; pitch: number; roll: number } | null,
+    };
   };
   await expect(async () => {
-    const before = await readDestination();
+    const before = await readCamera();
     await page.waitForTimeout(800);
-    const after = await readDestination();
+    const after = await readCamera();
     // 描画中のわずかな揺らぎは移動とみなさない
-    const moved = distance(before, after);
-    const offset = distance(after, target);
+    const moved = distance(before.destination, after.destination);
+    const offset = distance(after.destination, target);
+    // 真下向き (pitch -90°) でなければ画面中央が目標地点にならない
+    const pitchError = Math.abs((after.orientation?.pitch ?? 0) + Math.PI / 2);
+    const state = `目標から約${Math.round(offset)}m、向き ${JSON.stringify(after.orientation)}`;
     expect(
       moved,
-      `カメラが移動中です (0.8 秒で約${moved.toFixed(1)}m 移動、目標から約${Math.round(offset)}m)`
+      `カメラが移動中です (0.8 秒で約${moved.toFixed(1)}m 移動、${state})`
     ).toBeLessThan(1);
-    if (offset >= 30) {
+    if (offset >= 30 || pitchError >= 0.01) {
       await page.reload();
     }
-    expect(offset, `カメラが目標地点にいません (ずれ 約${Math.round(offset)}m)`).toBeLessThan(30);
+    expect(offset, `カメラが目標地点にいません (${state})`).toBeLessThan(30);
+    expect(pitchError, `カメラが真下を向いていません (${state})`).toBeLessThan(0.01);
   }).toPass({ timeout: LOAD_TIMEOUT });
 };
 
 /**
  * 次のページ読み込みから、カメラを指定 z16 タイルの真上で開始させる。
- * これで「表示範囲で検索」の取得範囲がそのタイルになる (作成時の着地ズレの影響を受けない)。
+ * これで「表示範囲で検索」の取得範囲がそのタイルになる (作成時に地点が多少ずれても影響しない)。
  */
 const presetCameraOnTile = (page: Page, tile: TileXY) =>
   presetCamera(page, tileCenterLonLat(tile, VIEW_TILE_Z));
@@ -310,6 +317,10 @@ const clickCanvasUntil = async (
 /** 矩形の 2 点を選択し、タイル Z / 高度 (F) を既定値のまま確定する */
 const selectSimpleRectangle = async (page: Page) => {
   await expect(page.getByText('左上の地点を選択してください')).toBeVisible();
+  // 地点はカメラからクリック位置を通る直線と地形メッシュの交点で決まるため、
+  // 地形タイルの読み込みが落ち着く (通信が止まる) まで待ってからクリックする。
+  // 読み込み途中の粗いメッシュに当たると、画面中央から離れた点ほど交点が外側にずれ、登録される矩形が大きくなる
+  await page.waitForLoadState('networkidle', { timeout: LOAD_TIMEOUT });
   await clickCanvasUntil(page, RECT_POINT_1, '右下の地点を選択してください');
   await clickCanvasUntil(page, RECT_POINT_2, '矢印キーでタイルのサイズを選択してください');
   await page.getByRole('button', { name: '次へ' }).click();
@@ -475,16 +486,18 @@ export const verifyAndDeleteViaViewer = async (
   await expectModelDisplayed(page, target.featureName, objectId);
   expect(storedIds, `get-object 応答に ${objectId} の空間 ID がありません`).not.toHaveLength(0);
 
-  // 作成したボクセルが範囲検索の z16 タイルに収まっていること
+  // 作成したボクセルが範囲検索の z16 タイルに収まっていること (soft: 失敗しても削除まで進めて残骸を消す)
   const tile = tileOf(storedIds[0]);
   const outside = storedIds.filter((id) => {
     const t = tileOf(id);
     return t.x !== tile.x || t.y !== tile.y;
   });
-  expect(
-    outside,
-    `作成したボクセルが範囲検索の z16 タイル ${tile.x}/${tile.y} に収まっていません (範囲外 ${outside.length} 個、例: ${outside[0]})`
-  ).toHaveLength(0);
+  expect
+    .soft(
+      outside,
+      `作成したボクセルが範囲検索の z16 タイル ${tile.x}/${tile.y} に収まっていません (範囲外 ${outside.length} 個、例: ${outside[0]})`
+    )
+    .toHaveLength(0);
 
   // 範囲検索 (soft: 失敗しても削除まで進めて残骸を消す):
   // 通常は応答に登録 objectId があり、そのボクセル列が保存済みの空間 ID と一致すること。
